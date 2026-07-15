@@ -53,7 +53,7 @@ header p.view {
 
 #pageLayout {
   display: grid;
-  grid-template-columns: clamp(140px, 15vw, 200px) 1fr 200px;
+  grid-template-columns: clamp(140px, 15vw, 200px) 1fr clamp(140px, 15vw, 200px);
   gap: 16px;
   align-items: start;
   max-width: 1400px;
