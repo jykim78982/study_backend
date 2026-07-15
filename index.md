@@ -21,9 +21,9 @@ title: 백엔드 스터디 노트
 </ul>
 
 <div id="pagination" style="display:flex;align-items:center;gap:12px;margin-top:16px;">
-  <button id="prevPageBtn" type="button">이전</button>
+  <button id="prevPageBtn" type="button">&lt;</button>
   <span id="pageIndicator"></span>
-  <button id="nextPageBtn" type="button">다음</button>
+  <button id="nextPageBtn" type="button">&gt;</button>
 </div>
 
 </aside>
