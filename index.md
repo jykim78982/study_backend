@@ -28,7 +28,7 @@ title: 백엔드 스터디 노트
 
 </div>
 
-<div id="noteViewer" style="display:none;margin-top:24px;border-top:1px solid #eee;padding-top:16px;max-height:70vh;overflow-y:auto;"></div>
+<div id="noteViewer" style="display:none;margin-top:24px;border-top:1px solid #eee;padding-top:16px;"></div>
 
 <script>
 (function () {
