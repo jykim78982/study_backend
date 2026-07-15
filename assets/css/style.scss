@@ -16,3 +16,15 @@ section {
   padding: 0;
   margin: 0;
 }
+
+@media (max-width: 640px) {
+  #pageLayout {
+    flex-direction: column;
+  }
+
+  #sidebar {
+    position: static;
+    width: auto;
+    flex-basis: auto;
+  }
+}

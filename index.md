@@ -3,7 +3,11 @@ layout: default
 title: 백엔드 스터디 노트
 ---
 
-# 목록
+<div id="pageLayout" style="display:flex;gap:32px;align-items:flex-start;">
+
+<aside id="sidebar" style="position:sticky;top:20px;width:260px;flex:0 0 260px;">
+
+<h1>목록</h1>
 
 <button id="toggleListBtn" type="button">목록 닫기</button>
 
@@ -28,7 +32,13 @@ title: 백엔드 스터디 노트
 
 </div>
 
-<div id="noteViewer" style="display:none;margin-top:24px;border-top:1px solid #eee;padding-top:16px;"></div>
+</aside>
+
+<div id="mainContent" style="flex:1;min-width:0;">
+  <div id="noteViewer" style="display:none;"></div>
+</div>
+
+</div>
 
 <script>
 (function () {
