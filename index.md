@@ -3,8 +3,6 @@ layout: default
 title: 백엔드 스터디 노트
 ---
 
-<button id="sidebarToggleBtn" type="button" style="display:none;margin-bottom:12px;">☰ 목록</button>
-
 <div id="pageLayout">
 
 <aside id="sidebar">
@@ -49,13 +47,6 @@ title: 백엔드 스터디 노트
   var nextBtn = document.getElementById("nextPageBtn");
   var indicator = document.getElementById("pageIndicator");
   var viewer = document.getElementById("noteViewer");
-  var sidebar = document.getElementById("sidebar");
-  var sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
-
-  sidebarToggleBtn.addEventListener("click", function () {
-    var isOpen = sidebar.classList.toggle("is-open");
-    sidebarToggleBtn.textContent = isOpen ? "✕ 닫기" : "☰ 목록";
-  });
 
   function render() {
     var start = (currentPage - 1) * PAGE_SIZE;

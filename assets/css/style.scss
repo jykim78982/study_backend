@@ -121,24 +121,9 @@ header p.view {
 
   #sidebar {
     position: static;
-    display: none;
-  }
-
-  #sidebar.is-open {
-    display: block;
   }
 
   #rightSidebar {
     display: none;
-  }
-
-  #sidebarToggleBtn {
-    display: inline-block !important;
-    background: none;
-    border: 1px solid #e5e5e5;
-    border-radius: 5px;
-    padding: 6px 12px;
-    cursor: pointer;
-    font-size: 14px;
   }
 }
