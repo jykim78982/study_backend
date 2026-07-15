@@ -65,6 +65,17 @@ header p.view {
   padding-left: 0;
 }
 
+#noteList li {
+  max-width: 100%;
+}
+
+#noteList li a {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 #prevPageBtn,
 #nextPageBtn {
   background: none;
