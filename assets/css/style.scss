@@ -56,6 +56,10 @@ header p.view {
   margin: 0 auto;
 }
 
+#rightSidebar {
+  min-height: 1px;
+}
+
 #noteViewer {
   max-width: 820px;
   margin: 0 auto;
@@ -68,5 +72,9 @@ header p.view {
 
   #sidebar {
     position: static;
+  }
+
+  #rightSidebar {
+    display: none;
   }
 }
