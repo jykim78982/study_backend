@@ -3,9 +3,9 @@ layout: default
 title: 백엔드 스터디 노트
 ---
 
-<div id="pageLayout" style="display:flex;gap:32px;align-items:flex-start;">
+<div id="pageLayout" style="display:grid;grid-template-columns:260px 1fr 260px;gap:32px;align-items:start;">
 
-<aside id="sidebar" style="position:sticky;top:60px;width:260px;flex:0 0 260px;">
+<aside id="sidebar" style="position:sticky;top:60px;">
 
 <h1>목록</h1>
 
@@ -34,7 +34,7 @@ title: 백엔드 스터디 노트
 
 </aside>
 
-<div id="mainContent" style="flex:1;min-width:0;">
+<div id="mainContent" style="min-width:0;">
   <div id="noteViewer" style="display:none;"></div>
 </div>
 

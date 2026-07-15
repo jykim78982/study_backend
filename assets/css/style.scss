@@ -51,14 +51,12 @@ header p.view {
   margin: 0 auto;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   #pageLayout {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   #sidebar {
     position: static;
-    width: auto;
-    flex-basis: auto;
   }
 }
