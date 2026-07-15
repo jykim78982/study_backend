@@ -65,6 +65,27 @@ header p.view {
   padding-left: 0;
 }
 
+#prevPageBtn,
+#nextPageBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #267CB9;
+  cursor: pointer;
+}
+
+#prevPageBtn:hover,
+#nextPageBtn:hover {
+  color: #069;
+  font-weight: bold;
+}
+
+#prevPageBtn:disabled,
+#nextPageBtn:disabled {
+  color: #999;
+  cursor: default;
+}
+
 #noteViewer {
   max-width: 1040px;
   margin: 0 auto;
