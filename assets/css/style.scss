@@ -60,6 +60,11 @@ header p.view {
   min-height: 1px;
 }
 
+#noteList {
+  list-style: none;
+  padding-left: 0;
+}
+
 #noteViewer {
   max-width: 1040px;
   margin: 0 auto;
