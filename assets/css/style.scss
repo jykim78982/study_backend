@@ -46,6 +46,11 @@ header p.view {
   margin: 0;
 }
 
+#noteViewer {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
 @media (max-width: 640px) {
   #pageLayout {
     flex-direction: column;
