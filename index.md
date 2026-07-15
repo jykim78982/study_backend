@@ -5,9 +5,9 @@ title: 백엔드 스터디 노트
 
 <button id="sidebarToggleBtn" type="button" style="display:none;margin-bottom:12px;">☰ 목록</button>
 
-<div id="pageLayout" style="display:grid;grid-template-columns:clamp(140px, 15vw, 200px) 1fr 200px;gap:16px;align-items:start;">
+<div id="pageLayout">
 
-<aside id="sidebar" style="position:sticky;top:60px;min-width:0;">
+<aside id="sidebar">
 
 <h1>목록</h1>
 
@@ -34,7 +34,7 @@ title: 백엔드 스터디 노트
   <div id="noteViewer" style="display:none;"></div>
 </div>
 
-<aside id="rightSidebar" style="position:sticky;top:60px;"></aside>
+<aside id="rightSidebar"></aside>
 
 </div>
 

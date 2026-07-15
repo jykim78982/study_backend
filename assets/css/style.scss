@@ -52,11 +52,23 @@ header p.view {
 }
 
 #pageLayout {
+  display: grid;
+  grid-template-columns: clamp(140px, 15vw, 200px) 1fr 200px;
+  gap: 16px;
+  align-items: start;
   max-width: 1400px;
   margin: 0 auto;
 }
 
+#sidebar {
+  position: sticky;
+  top: 60px;
+  min-width: 0;
+}
+
 #rightSidebar {
+  position: sticky;
+  top: 60px;
   min-height: 1px;
 }
 
