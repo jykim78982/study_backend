@@ -22,6 +22,8 @@ title: 백엔드 스터디 노트
   <button id="nextPageBtn" type="button">다음</button>
 </div>
 
+<div id="noteViewer" style="display:none;margin-top:24px;border-top:1px solid #eee;padding-top:16px;max-height:70vh;overflow-y:auto;"></div>
+
 <script>
 (function () {
   var PAGE_SIZE = 5;
@@ -32,6 +34,7 @@ title: 백엔드 스터디 노트
   var prevBtn = document.getElementById("prevPageBtn");
   var nextBtn = document.getElementById("nextPageBtn");
   var indicator = document.getElementById("pageIndicator");
+  var viewer = document.getElementById("noteViewer");
 
   function render() {
     var start = (currentPage - 1) * PAGE_SIZE;
@@ -56,6 +59,30 @@ title: 백엔드 스터디 노트
       currentPage += 1;
       render();
     }
+  });
+
+  items.forEach(function (item) {
+    var link = item.querySelector("a");
+    if (!link) return;
+
+    link.addEventListener("click", function (event) {
+      event.preventDefault();
+
+      viewer.style.display = "block";
+      viewer.innerHTML = "불러오는 중...";
+      viewer.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      fetch(link.getAttribute("href"))
+        .then(function (res) { return res.text(); })
+        .then(function (html) {
+          var parsed = new DOMParser().parseFromString(html, "text/html");
+          var section = parsed.querySelector("section");
+          viewer.innerHTML = section ? section.innerHTML : "내용을 불러오지 못했습니다.";
+        })
+        .catch(function () {
+          viewer.innerHTML = "내용을 불러오지 못했습니다.";
+        });
+    });
   });
 
   render();
