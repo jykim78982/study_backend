@@ -5,7 +5,7 @@ title: 백엔드 스터디 노트
 
 <div id="pageLayout" style="display:flex;gap:32px;align-items:flex-start;">
 
-<aside id="sidebar" style="position:sticky;top:20px;width:260px;flex:0 0 260px;">
+<aside id="sidebar" style="position:sticky;top:60px;width:260px;flex:0 0 260px;">
 
 <h1>목록</h1>
 

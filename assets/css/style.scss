@@ -17,6 +17,30 @@ section {
   margin: 0;
 }
 
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  padding: 10px 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+header h1 {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+
+header p {
+  font-size: 12px;
+  margin: 0 0 4px;
+}
+
+header p.view {
+  margin: 0;
+}
+
 @media (max-width: 640px) {
   #pageLayout {
     flex-direction: column;
