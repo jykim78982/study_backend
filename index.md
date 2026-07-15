@@ -3,15 +3,11 @@ layout: default
 title: 백엔드 스터디 노트
 ---
 
-<div id="pageLayout" style="display:grid;grid-template-columns:260px 1fr 260px;gap:32px;align-items:start;">
+<div id="pageLayout" style="display:grid;grid-template-columns:260px 1fr;gap:32px;align-items:start;">
 
 <aside id="sidebar" style="position:sticky;top:60px;">
 
 <h1>목록</h1>
-
-<button id="toggleListBtn" type="button">목록 닫기</button>
-
-<div id="listWrapper">
 
 <ul id="noteList">
   <li><a href="07-08%5F리눅스%20파일%20시스템%20실습.html">07-08_리눅스 파일 시스템 실습</a></li>
@@ -28,8 +24,6 @@ title: 백엔드 스터디 노트
   <button id="prevPageBtn" type="button">이전</button>
   <span id="pageIndicator"></span>
   <button id="nextPageBtn" type="button">다음</button>
-</div>
-
 </div>
 
 </aside>
@@ -51,14 +45,6 @@ title: 백엔드 스터디 노트
   var nextBtn = document.getElementById("nextPageBtn");
   var indicator = document.getElementById("pageIndicator");
   var viewer = document.getElementById("noteViewer");
-  var toggleBtn = document.getElementById("toggleListBtn");
-  var listWrapper = document.getElementById("listWrapper");
-
-  toggleBtn.addEventListener("click", function () {
-    var isOpen = listWrapper.style.display !== "none";
-    listWrapper.style.display = isOpen ? "none" : "block";
-    toggleBtn.textContent = isOpen ? "목록 열기" : "목록 닫기";
-  });
 
   function render() {
     var start = (currentPage - 1) * PAGE_SIZE;
