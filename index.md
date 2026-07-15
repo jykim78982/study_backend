@@ -3,7 +3,7 @@ layout: default
 title: 백엔드 스터디 노트
 ---
 
-<div id="pageLayout" style="display:grid;grid-template-columns:260px 1fr;gap:32px;align-items:start;">
+<div id="pageLayout" style="display:grid;grid-template-columns:260px 1fr;gap:16px;align-items:start;">
 
 <aside id="sidebar" style="position:sticky;top:60px;">
 

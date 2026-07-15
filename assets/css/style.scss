@@ -3,8 +3,13 @@
 
 @import "{{ site.theme }}";
 
+body {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
 .wrapper {
-  width: 92%;
+  width: 96%;
   max-width: 1200px;
 }
 
