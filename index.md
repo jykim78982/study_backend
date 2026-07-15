@@ -5,6 +5,10 @@ title: 백엔드 스터디 노트
 
 # 목록
 
+<button id="toggleListBtn" type="button">목록 닫기</button>
+
+<div id="listWrapper">
+
 <ul id="noteList">
   <li><a href="07-08%5F리눅스%20파일%20시스템%20실습.html">07-08_리눅스 파일 시스템 실습</a></li>
   <li><a href="07-09%5F데이터베이스.html">07-09_데이터베이스</a></li>
@@ -22,6 +26,8 @@ title: 백엔드 스터디 노트
   <button id="nextPageBtn" type="button">다음</button>
 </div>
 
+</div>
+
 <div id="noteViewer" style="display:none;margin-top:24px;border-top:1px solid #eee;padding-top:16px;max-height:70vh;overflow-y:auto;"></div>
 
 <script>
@@ -35,6 +41,14 @@ title: 백엔드 스터디 노트
   var nextBtn = document.getElementById("nextPageBtn");
   var indicator = document.getElementById("pageIndicator");
   var viewer = document.getElementById("noteViewer");
+  var toggleBtn = document.getElementById("toggleListBtn");
+  var listWrapper = document.getElementById("listWrapper");
+
+  toggleBtn.addEventListener("click", function () {
+    var isOpen = listWrapper.style.display !== "none";
+    listWrapper.style.display = isOpen ? "none" : "block";
+    toggleBtn.textContent = isOpen ? "목록 열기" : "목록 닫기";
+  });
 
   function render() {
     var start = (currentPage - 1) * PAGE_SIZE;
