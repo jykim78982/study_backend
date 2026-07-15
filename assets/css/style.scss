@@ -3,6 +3,11 @@
 
 @import "{{ site.theme }}";
 
+.wrapper {
+  width: 92%;
+  max-width: 1200px;
+}
+
 header,
 section,
 footer {
