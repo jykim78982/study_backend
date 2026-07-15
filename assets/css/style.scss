@@ -51,9 +51,14 @@ header p.view {
   margin: 0;
 }
 
-#noteViewer {
-  max-width: 900px;
+#pageLayout {
+  max-width: 1180px;
   margin: 0 auto;
+}
+
+#noteViewer {
+  max-width: none;
+  margin: 0;
 }
 
 @media (max-width: 900px) {
