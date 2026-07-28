@@ -1,0 +1,49 @@
+name: Update README
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate README from latest note
+        run: |
+          export LC_ALL=C.UTF-8
+          latest=$(ls [0-9][0-9]-[0-9][0-9]_*.md 2>/dev/null | sort | tail -1)
+          if [ -z "$latest" ]; then
+            echo "날짜 형식 노트가 없어 README를 갱신하지 않습니다."
+            exit 0
+          fi
+          {
+            echo "# 백엔드 스터디 노트"
+            echo
+            echo "> 매일 배운 내용을 마크다운으로 정리하는 저장소입니다. 아래는 가장 최근 노트 전문입니다."
+            echo
+            echo "## 📌 최신 노트 — [${latest%.md}](<./$latest>)"
+            echo
+            echo "---"
+            echo
+            cat "$latest"
+            echo
+            echo "---"
+            echo
+            echo "## 🗂 전체 노트 (최신순)"
+            echo
+            ls [0-9][0-9]-[0-9][0-9]_*.md | sort -r | while read -r f; do
+              echo "- [${f%.md}](<./$f>)"
+            done
+          } > README.md
+
+      - name: Commit README if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git diff --cached --quiet || (git commit -m "docs: README 자동 갱신" && git push)
