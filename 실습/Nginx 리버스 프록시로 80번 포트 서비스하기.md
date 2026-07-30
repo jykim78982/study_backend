@@ -1,0 +1,145 @@
+---
+날짜: 2026-07-10
+---
+
+# 웹서버 겸 프록시 서버 Nginx로 80번 포트 서비스하기
+
+## 목표
+
+Nginx 프록시 서버를 이용해서 `31xx`번 포트로 실행되는 내 서비스를 **80번 포트**로 서비스하도록 설정한다.
+
+---
+
+## 0. 사전 작업
+
+- 도메인 구입
+- Nginx 설치 (이미 설치되어 있음)
+
+### 1) 도메인을 구매한 IP/별칭으로 매핑
+
+구매한 사이트(가비아, 후이즈 등)에서 도메인을 다음 **둘 중 하나로만** 매핑한다.
+
+| 매핑 방식 | 값 |
+|---|---|
+| 호스트를 IP로 매핑 | `203.0.113.10` |
+| 호스트를 별칭(CNAME)으로 매핑 | `cdn.example.com` |
+
+**검토 방법**: 도스창 또는 bash에서 `nslookup`으로 확인. 조회한 IP가 `203.0.113.10`으로 나오면 성공.
+
+```
+$ nslookup
+> 자신의도메인명(예: example.com)
+
+Server:         127.0.0.53
+Address:        127.0.0.53#53
+
+Non-authoritative answer:
+Name:   자신의도메인명(예: example.com)
+Address: 203.0.113.10
+```
+
+### 2) Nginx 설치 방법
+
+```bash
+# 패키지 업데이트
+sudo apt update
+
+# Nginx 설치
+sudo apt install nginx -y
+
+# 서비스 시작 및 활성화
+sudo systemctl start nginx
+sudo systemctl enable nginx
+
+# 설치 확인
+nginx -v
+sudo systemctl status nginx
+```
+
+---
+
+## 작업 순서
+
+1. nginx 서비스 설정파일 생성하기
+2. 설정 파일 활성화, 테스트, 재시작
+3. 설정 결과 확인하기
+
+---
+
+## 1) nginx 서비스 설정파일 생성하기
+
+`/etc/nginx/sites-available/` 디렉토리에 **도메인 이름으로** 설정 파일을 생성한다.
+
+`/etc/nginx/sites-available/`는 nginx가 구성을 위해 사용하는 특수 디렉토리로, 이 디렉토리에 있는 모든 파일을 읽어서 구성을 설정한다. 파일명이 충돌하지 않고 쉽게 찾을 수 있도록 **도메인 이름**으로 파일을 만드는 것이 좋다.
+
+**예시**
+```
+/etc/nginx/sites-available/example.com
+/etc/nginx/sites-available/www.example.com
+```
+
+```bash
+cd /etc/nginx/sites-available/
+sudo nano example.com
+```
+
+> nano 편집기 메뉴는 하단에 위치하며, `^X`는 `Ctrl+X`, `M-U`는 `Alt+U`를 의미한다. 편집을 종료할 때는 `Ctrl+X`를 누르면 되고, 편집된 내용이 있으면 저장할지 묻는 프롬프트가 뜨므로 `Y` 또는 `N`을 눌러 빠져나온다.
+
+**파일 내용**
+
+```nginx
+server {
+    listen 80;
+    # 자신의 도메인명을 이용해서 nginx가 서비스를 구분하게 해준다.
+    # 예시: server_name example.com www.example.com
+    server_name your-domain.com www.your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:3110;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+---
+
+## 2) 설정 파일 활성화, 테스트, 재시작
+
+`/etc/nginx/sites-available/`에 설정을 만드는 것만으로는 적용되지 않는다. 적용되려면 `/etc/nginx/sites-enabled/` 디렉토리에 **심볼릭 링크**를 만들어야 한다.
+
+```bash
+sudo nano example.com
+sudo ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/
+sudo nginx -t
+```
+
+```
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+
+```bash
+sudo systemctl reload nginx
+```
+
+---
+
+## 3) 설정 결과 확인하기
+
+서버의 프로젝트 디렉토리에서 `npm start`를 실행한다.
+
+내 사이트가 정상 동작하는지 확인 — 자신의 도메인이 `example.com`인 경우 `http://example.com` 주소로 접속해서 확인한다.
+
+nginx가 하는 역할은 실제 서비스(포트 3100)로 동작하는 서비스를, 내가 설정한 **도메인과 80번 포트**로 서비스하게 만들어주는 것이다.
+
+> nginx는 정상 동작 중이지만, 실제 서비스 포트(3100)가 떠 있지 않으면 위 같은 오류가 발생한다 — nginx와 백엔드 서비스는 별개로 떠 있어야 한다는 뜻이다.
+
+---
+
+## 참고: 이번 설정에서 나온 포트 번호
+
+문서 중간에 설정 예시 파일은 `proxy_pass http://localhost:3110`을, 마지막 확인 설명에서는 `3100` 포트를 언급하고 있다 — 실제로 적용할 때는 **자신의 서비스가 실제로 떠 있는 포트 번호**로 통일해서 맞춰야 한다.

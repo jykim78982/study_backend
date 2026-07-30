@@ -1,0 +1,339 @@
+---
+날짜: 2026-07-21
+---
+
+# 파일 API 실습
+
+## 학습 내용
+
+입/출력 API가 제공하는 입/출력 함수의 **값의 단위**가 무엇인지 확인한다.
+
+API에 따라 다음과 같은 단위로 입/출력이 가능하다.
+
+- **바이트 단위** 입/출력
+- **문자 단위** 입/출력
+- **문자열 단위** 입/출력
+
+그리고 **왜 한글은 바이트 단위 출력이 안 되는지**도 함께 확인한다.
+
+### 사전 준비 사항
+
+- 자바 확장팩 설치 (설치 확인: 객체가 가지고 있는 함수 목록이 자동완성으로 보여지면 정상)
+
+---
+
+## 출력(Output) 스트림 — 단계별 실습
+
+### 1단계: File 객체 (파일 정보 다루기)
+
+`File` 객체는 실제 파일에 글을 쓰는 기능은 없으며, **파일의 경로 정보를 관리**한다.
+
+```java
+import java.io.File;
+
+class FileExample {
+    public static void main(String[] args) {
+        // 1. 파일 경로를 다루는 File 객체 생성
+        File file1 = new File("data.txt"); // 상대 경로 = 현재 작업 디렉토리 기준
+
+        // 2. File 객체가 제공하는 기본 기능 활용
+        System.out.println("파일이 존재하는가? " + file1.exists());
+        System.out.println("파일 이름: " + file1.getName());
+        System.out.println("절대 경로: " + file1.getAbsolutePath());
+    }
+}
+```
+
+### 2단계: File + FileOutputStream (바이너리 / 1바이트 저장)
+
+`File` 객체에 `FileOutputStream`을 연결하면 파일에 **1바이트 단위**로 데이터를 직접 기록할 수 있다.
+
+```java
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+class FileOutputStreamExample {
+    public static void main(String[] args) throws IOException {
+        File file = new File("data.txt");
+
+        // FileOutputStream: 1바이트씩 파일에 데이터를 저장하는 스트림
+        FileOutputStream fos = new FileOutputStream(file);
+
+        // write() 메서드로 1바이트(숫자/아스키코드) 저장
+        fos.write('A'); // 아스키 코드 65 -> 'A' 저장
+        fos.write(66);  // 아스키 코드 66 -> 'B' 저장
+
+        fos.close(); // 스트림 닫기
+    }
+}
+```
+
+> **테스트**: 위 코드에서 `fos.write('가');`를 추가해 실행해보면 오류가 발생한다. `write()`는 1바이트(0~255) 단위로만 값을 받는데, 한글 `'가'`는 유니코드상 1바이트로 표현할 수 없는 범위의 값이라 자동으로 잘리거나(정확한 표현이 불가능해) 깨지기 때문이다. **왜 한글은 바이트 단위 출력이 안 되는지**를 직접 확인하는 지점 — 이 문제를 해결하려면 3단계의 문자 단위 스트림이 필요하다.
+
+### 3단계: File + FileOutputStream + OutputStreamWriter (문자 저장)
+
+`FileOutputStream` 위에 `OutputStreamWriter`를 씌우면 1바이트가 아닌 **문자(char) 단위**(한글 등 다중 바이트 포함)로 변환해서 저장할 수 있다.
+
+```java
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.IOException;
+
+class OutputStreamWriterExample {
+    public static void main(String[] args) throws IOException {
+        File file = new File("data.txt");
+
+        FileOutputStream fos = new FileOutputStream(file);
+        // OutputStreamWriter: 바이트 스트림을 문자(다중 바이트 포함) 단위 처리 스트림으로 변환
+        OutputStreamWriter osw = new OutputStreamWriter(fos);
+
+        // write() 메서드로 문자(char) 저장
+        osw.write('가');
+        osw.write('나');
+
+        osw.close(); // 가장 외곽의 스트림을 닫으면 연결된 fos도 함께 닫힘
+    }
+}
+```
+
+### 4단계: File + FileOutputStream + PrintStream (문자열 및 줄바꿈 저장)
+
+`FileOutputStream` 위에 `PrintStream`을 씌우면 **문자열(String) 출력** 및 **자동 줄바꿈**(`println`) 편의 기능을 사용할 수 있다.
+
+```java
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.io.FileNotFoundException;
+
+class PrintStreamExample {
+    public static void main(String[] args) throws FileNotFoundException {
+        File file = new File("data.txt");
+
+        FileOutputStream fos = new FileOutputStream(file);
+        // PrintStream: 문자열 출력 및 줄바꿈 기능을 제공하는 보조 스트림
+        PrintStream fout = new PrintStream(fos);
+
+        // println() 메서드로 문자열 및 줄바꿈 저장
+        fout.println("Hello");
+        fout.println("안녕하세요");
+
+        fout.close();
+    }
+}
+```
+
+### 단계별 핵심 요약 (출력)
+
+| 단계 | 사용하는 객체 조합 | 추가되는 주요 기능 | 사용 메서드 |
+|---|---|---|---|
+| 1단계 | `File` | 파일 경로 및 상태 정보 확인 | `exists()`, `getName()` |
+| 2단계 | `File` + `FileOutputStream` | 파일에 1바이트(숫자/아스키) 직접 쓰기 | `write(65)` |
+| 3단계 | ... + `OutputStreamWriter` | 문자(char) 단위 변환 쓰기 (한글 가능) | `write('가')` |
+| 4단계 | ... + `PrintStream` | 문자열(String) 쓰기 및 줄바꿈 지원 | `println("hello")` |
+
+---
+
+## 5단계: CSV 포맷 저장 예제 (PrintStream.printf 사용)
+
+```java
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.io.FileNotFoundException;
+
+class CsvWriteExample {
+    public static void main(String[] args) throws FileNotFoundException {
+        int kor1 = 90;
+        int kor2 = 80;
+        int kor3 = 70;
+
+        // 1. 저장할 CSV 파일 객체 생성
+        File file = new File("scores.csv");
+
+        // 2. 바이트 스트림 및 PrintStream 보조 스트림 연결
+        FileOutputStream fos = new FileOutputStream(file);
+        PrintStream fout = new PrintStream(fos);
+
+        // 3. CSV 헤더(컬럼명) 작성
+        fout.printf("%s,%s,%s\n", "KOR1", "KOR2", "KOR3");
+
+        // 4. printf를 사용하여 int 데이터를 CSV 형식으로 저장
+        // %d : 정수 출력
+        fout.printf("%d,%d,%d\n", kor1, kor2, kor3);
+
+        // 5. 추가 데이터 작성 예시
+        fout.printf("%d,%d,%d\n", 100, 95, 85);
+
+        // 6. 스트림 닫기
+        fout.close();
+    }
+}
+```
+
+### 서식 지정자 활용
+
+- `%d`: 정수(int) 값을 출력
+- `%s`: 문자열(String)을 출력
+- `\n`: OS(Windows, Mac, Linux) 환경에 맞는 줄바꿈 기호를 자동으로 삽입
+
+### CSV 구조 완성
+
+값 사이에 콤마(`,`)를 배치하여 엑셀이나 데이터 분석 도구에서 바로 열 수 있는 표준 CSV 규격을 생성한다.
+
+**결과 파일 내용 (`scores.csv`)**
+
+```
+KOR1,KOR2,KOR3
+90,80,70
+100,95,85
+```
+
+---
+
+## 입력(Input) 스트림 — 단계별 실습
+
+파일에 데이터를 저장했던 것과 반대로, 파일에서 데이터를 읽어오는 **입력(Input) 스트림** 과정이다. 출력 스트림(`FileOutputStream`, `OutputStreamWriter`, `PrintStream`)과 **대칭되는** 입력 스트림(`FileInputStream`, `InputStreamReader`, `Scanner`)을 사용한다.
+
+### 1단계: File + FileInputStream (바이너리 / 1바이트 읽기)
+
+`FileInputStream`은 파일로부터 **1바이트 단위**의 원시 데이터(숫자/아스키)를 읽어온다. 파일의 끝에 도달하면 `-1`을 반환한다. (`binary.dat` 파일에 `AB`를 입력해서 미리 준비)
+
+```java
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+class FileInputStreamExample {
+    public static void main(String[] args) throws IOException {
+        File file = new File("binary.dat");
+
+        // 바이트 단위 입력 스트림 생성
+        FileInputStream fis = new FileInputStream(file);
+
+        // read() 메서드는 1바이트씩 읽어오며, 파일 끝(EOF)에 도달하면 -1을 반환함
+        int data1 = fis.read();
+        int data2 = fis.read();
+
+        System.out.println("읽어온 바이트 1: " + data1);
+        System.out.println("읽어온 바이트 2: " + data2);
+
+        fis.close();
+    }
+}
+```
+
+### 2단계: File + FileInputStream + InputStreamReader (문자 단위 읽기)
+
+`FileInputStream`을 `InputStreamReader`로 감싸면 1바이트가 아닌 **문자(char) 단위**로 변환해서 읽어올 수 있다 (한글 깨짐 없이 읽기 가능).
+
+```java
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.io.IOException;
+
+class InputStreamReaderExample {
+    public static void main(String[] args) throws IOException {
+        File file = new File("char.txt");
+
+        FileInputStream fis = new FileInputStream(file);
+        // 바이트 스트림을 문자 단위 입력 스트림으로 변환
+        InputStreamReader isr = new InputStreamReader(fis);
+
+        // char 타입으로 형변환하여 문자로 출력
+        char ch1 = (char) isr.read();
+        char ch2 = (char) isr.read();
+
+        System.out.println("첫 번째 문자: " + ch1);
+        System.out.println("두 번째 문자: " + ch2);
+
+        isr.close();
+    }
+}
+```
+
+### 3단계: File + Scanner (문자열 및 정수 입력)
+
+`FileInputStream` 또는 `File` 객체를 `Scanner`로 감싸면 `nextLine()`(한 줄 읽기), `nextInt()`(정수 읽기) 등의 편의 기능을 사용하여 데이터 타입에 맞게 직접 읽어올 수 있다.
+
+```java
+import java.io.File;
+import java.util.Scanner;
+import java.io.FileNotFoundException;
+
+class ScannerExample {
+    public static void main(String[] args) throws FileNotFoundException {
+        File file = new File("string.txt");
+
+        // File 객체를 직접 Scanner에 전달하여 입력 스트림 생성
+        Scanner sc = new Scanner(file);
+
+        // 한 줄 단위로 문자열 읽기
+        String line1 = sc.nextLine();
+        String line2 = sc.nextLine();
+
+        System.out.println("첫 번째 줄: " + line1);
+        System.out.println("두 번째 줄: " + line2);
+
+        sc.close();
+    }
+}
+```
+
+### 4단계: CSV 파일 읽기 (Scanner로 성적 데이터 읽기)
+
+이전에 `printf`로 출력했던 `scores.csv` 파일의 데이터를 구분자(콤마 `,`) 기준 및 줄 단위로 읽어와 `int` 변수에 담는 예제다.
+
+```java
+import java.io.File;
+import java.util.Scanner;
+import java.io.FileNotFoundException;
+
+class CsvReadExample {
+    public static void main(String[] args) throws FileNotFoundException {
+        File file = new File("scores.csv");
+        Scanner sc = new Scanner(file);
+
+        // 1. 헤더(KOR1,KOR2,KOR3) 한 줄 읽어서 건너뛰기
+        if (sc.hasNextLine()) {
+            String header = sc.nextLine();
+            System.out.println("헤더 정보: " + header);
+        }
+
+        // 2. Scanner의 구분자를 콤마(,) 또는 줄바꿈으로 설정하여 정수 다루기
+        sc.useDelimiter(",|\\r?\\n");
+
+        // 첫 번째 데이터 행 읽기
+        int kor1 = sc.nextInt();
+        int kor2 = sc.nextInt();
+        int kor3 = sc.nextInt();
+
+        System.out.println("읽어온 성적 1: " + kor1);
+        System.out.println("읽어온 성적 2: " + kor2);
+        System.out.println("읽어온 성적 3: " + kor3);
+
+        sc.close();
+    }
+}
+```
+
+---
+
+## 출력(Output)과 입력(Input) 스트림 대칭 구조
+
+| 역할 | 출력(Output) 클래스 | 입력(Input) 클래스 | 주요 데이터 처리 방식 |
+|---|---|---|---|
+| 바이트 단위 | `FileOutputStream` | `FileInputStream` | `write(byte)` / `read()` (1바이트 원시 값) |
+| 문자 단위 | `OutputStreamWriter` | `InputStreamReader` | `write(char)` / `read()` (문자 단위 변환) |
+| 문자열/편의기능 | `PrintStream` (`println`, `printf`) | `Scanner` (`nextLine`, `nextInt`) | 서식 맞춰 출력 / 구분자 및 타입별 읽기 |
+
+---
+
+## 다음에 살펴볼 것
+
+- 최종 예제: 여러 스트림을 조합한 종합 실습 코드 작성
+- 예외 처리(`try-with-resources`)로 스트림 자동 close 처리하기
+- 버퍼링 스트림(`BufferedReader`, `BufferedWriter`)으로 성능 개선하기

@@ -42,6 +42,15 @@ jobs:
               done
               echo
             done
+            if [ -d "실습" ]; then
+              echo "### 실습"
+              echo
+              for f in 실습/*.md; do
+                [ -e "$f" ] || continue
+                echo "- [${f%.md}](<./$f>)"
+              done
+              echo
+            fi
           } > README.md
 
       - name: Commit README if changed
