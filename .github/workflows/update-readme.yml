@@ -27,7 +27,7 @@ jobs:
             echo
             echo "> 매일 배운 내용을 마크다운으로 정리하는 저장소입니다."
             echo
-            echo "## 🗂 전체 노트 (카테고리별)"
+            echo "## 🗂 전체 노트"
             echo
             for dir in $(ls -d [0-9][0-9]_*/ 2>/dev/null | sort); do
               base=${dir%/}
