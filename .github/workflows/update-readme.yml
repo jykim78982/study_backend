@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate README from latest note
+      - name: Generate README from note list
         run: |
           export LC_ALL=C.UTF-8
           shopt -s globstar
@@ -25,15 +25,7 @@ jobs:
           {
             echo "# 백엔드 스터디 노트"
             echo
-            echo "> 매일 배운 내용을 마크다운으로 정리하는 저장소입니다. 아래는 가장 최근 노트 전문입니다."
-            echo
-            echo "## 📌 최신 노트 — [${latest%.md}](<./$latest>)"
-            echo
-            echo "---"
-            echo
-            cat "$latest"
-            echo
-            echo "---"
+            echo "> 매일 배운 내용을 마크다운으로 정리하는 저장소입니다."
             echo
             echo "## 🗂 전체 노트 (최신순)"
             echo
