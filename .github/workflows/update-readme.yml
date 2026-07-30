@@ -34,27 +34,21 @@ jobs:
               num=${base%%_*}
               name=${base#*_}
               name=${name//_/ }
-              echo "<details>"
-              echo "<summary>${num}. ${name}</summary>"
+              echo "### ${num}. ${name}"
               echo
               for f in "$base"/[0-9][0-9][0-9]_*.md; do
                 [ -e "$f" ] || continue
                 echo "- [${f%.md}](<./$f>)"
               done
               echo
-              echo "</details>"
-              echo
             done
             if [ -d "실습" ]; then
-              echo "<details>"
-              echo "<summary>실습</summary>"
+              echo "### 실습"
               echo
               for f in 실습/*.md; do
                 [ -e "$f" ] || continue
                 echo "- [${f%.md}](<./$f>)"
               done
-              echo
-              echo "</details>"
               echo
             fi
           } > README.md
