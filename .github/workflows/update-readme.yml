@@ -16,7 +16,7 @@ jobs:
       - name: Generate README from latest note
         run: |
           export LC_ALL=C.UTF-8
-          latest=$(ls [0-9][0-9][0-9]_*.md 2>/dev/null | sort | tail -1)
+          latest=$(ls [1-9][0-9][0-9]_*.md 2>/dev/null | sort | tail -1)
           if [ -z "$latest" ]; then
             echo "번호 형식 노트가 없어 README를 갱신하지 않습니다."
             exit 0
@@ -36,7 +36,7 @@ jobs:
             echo
             echo "## 🗂 전체 노트 (최신순)"
             echo
-            ls [0-9][0-9][0-9]_*.md | sort -r | while read -r f; do
+            ls [1-9][0-9][0-9]_*.md | sort -r | while read -r f; do
               echo "- [${f%.md}](<./$f>)"
             done
           } > README.md
