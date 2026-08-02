@@ -9,8 +9,6 @@ tags: [java, 함수, switch, 리턴값, ScoresApp]
 ### 변경 전
 
 ```java
-import java.util.Scanner;
-
 class ScoresApp {
 
     public static void main(String[] args) throws java.io.IOException {
@@ -143,12 +141,6 @@ class ScoresApp {
 ### 변경 후
 
 ```java
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.Scanner;
-
 class ScoresApp {
 
     public static void main(String[] args) throws IOException {
