@@ -22,7 +22,7 @@ frame.add(new JLabel("아메리카노"));
 
 데이터는 콘솔이든 윈도우든 웹이든 동일하지만, **입출력 방식(껍데기)은 환경마다 달라진다.** 그런데 지금까지의 `Exam`처럼 데이터 관리(`kor`, `eng`, `math`, `total()`, `avg()`)와 콘솔 입출력(`input()`, `print()`)을 한 클래스에 결합해두면, 웹이나 윈도우 환경에서 이 클래스를 쓰려는 순간 콘솔 전용 기능까지 딸려온다 — **쓰지 않는 기능을 억지로 짊어지게 되는 것**이다.
 
-그래서 데이터를 순수하게 관리하는 역할과, 그 데이터를 특정 환경에 맞게 입출력하는 역할(껍데기)을 분리해야 한다. 이번 실습(`ex6_struct_exam4_relation`)에서는 이 분리를 `Exam`(데이터)과 `ExamConsole`(콘솔 입출력)로 나눠서 구현했다.
+그래서 데이터를 순수하게 관리하는 역할과, 그 데이터를 특정 환경에 맞게 입출력하는 역할(껍데기)을 분리해야 한다. 이번 실습(`step4_relation`)에서는 이 분리를 `Exam`(데이터)과 `ExamConsole`(콘솔 입출력)로 나눠서 구현했다.
 
 ## 2. 부품과 제품 — 누가 누구를 이용하는가
 
@@ -39,10 +39,11 @@ frame.add(new JLabel("아메리카노"));
 
 대신 "값을 가져오는" 것과 "값을 대입하는" 것도 각각 하나의 서비스로 요청해야 한다.
 
-- `exam.kor` → "국어 점수를 줘" → `exam.getKor()`
+- `int kor = exam.getKor();` → "국어 점수를 줘" → `exam.getKor()`
 - `exam.kor = kor;` → "kor 값을 설정해줘" → `exam.setKor(kor)`
 
 ```java
+// Exam 클래스 안의 메서드
 public int getKor() {
     return kor;
 }
@@ -100,9 +101,53 @@ Association Has-A로 외부에서 만든 객체를 대입해주는 작업 자체
 - **Constructor Injection**: 생성자 인자로 부품을 넘겨받음 — `new ExamConsole(exam)`
 - **Setter Injection**: setter로 나중에 부품을 넘겨받음 — `console.setExam(exam)`
 
+**`ExamConsole` 쪽 — exam을 넘겨받는 통로를 정의**
+
+```java
+public ExamConsole(Exam exam) {
+    this.exam = exam;
+}
+```
+
+**Constructor Association Has-A** — 생성자 인자로 `exam`을 받아서, 객체가 만들어지는 그 순간 바로 채워 넣는다.
+
+```java
+public ExamConsole() {
+
+}
+public void setExam(Exam exam) {
+    this.exam = exam;
+}
+```
+
+**Setter Association Has-A** — 무인자 생성자로 `exam`이 `null`인 채로 먼저 만들고, 나중에 `setExam()`을 불러서 채워 넣는다.
+
+`ExamConsole` 입장에서는 아직 `exam`이 채워지지 않았을 뿐, "누군가 나중에 `Exam`을 넣어줄 것"이라는 통로 두 개만 미리 마련해둔 상태다. 생성자로 받을지, setter로 받을지는 `ExamConsole` 스스로 정하지 않는다 — 어떤 방식으로 `exam`이 들어오든 받아줄 수 있게 문만 열어두고, 실제로 값을 채워 넣는 결정은 이 코드를 사용하는 쪽(App)에게 넘긴다.
+
+**객체를 생성하는 시점에 `exam`을 어떻게 받는가**
+
+- `new ExamConsole(exam)`처럼 인자를 주면, 생성자(`ExamConsole(Exam exam)`)가 실행되면서 그 자리에서 바로 `this.exam = exam;`이 이루어진다 — 생성과 동시에 `exam`이 채워진 상태로 태어난다
+- `new ExamConsole()`처럼 인자 없이 만들면, `ExamConsole(Exam exam)`이라는 오버로드 생성자가 이미 있기 때문에 이 무인자 생성자는 **직접 추가로 정의해둬야만** 존재한다([[025_오버로드, 생성자, 캡슐 은닉화]]) — 그 몸통이 비어있으면 `exam`은 대입해주는 코드가 없으니 참조 형식의 기본값인 `null`로 남은 채로 태어난다
+
+즉 객체가 태어나는 그 순간의 상태(`exam`이 채워져 있는지, `null`인지)는 **어떤 생성자를 호출했는지**에 따라 갈리고, `null`로 태어난 경우에만 이후에 `setExam()`으로 값을 채워 넣어야 한다.
+
+**`Exam`을 넘겨주는 쪽(App) — 실제로 DI가 일어나는 지점**
+
+```java
+// Constructor Injection
+ExamConsole console = new ExamConsole(exam);
+// 객체를 생성하는 시점에 exam을 넘겨받는다
+
+// Setter Injection
+ExamConsole console = new ExamConsole();
+// 생성 시점에는 exam이 null 상태
+console.setExam(exam);
+// 이후에 exam을 넘겨받는다
+```
+
 > 예문: "exam을 console 객체에 DI 해줘야 하지 않을까요?" / "exam을 console 객체에 constructor injection 해주세요."
 
-## 7. 종합 코드 — ex6_struct_exam4_relation
+## 7. 종합 코드 — step4_relation
 
 **`Exam` — 데이터 + 계산 서비스만 가진 순수한 부품**
 
@@ -144,7 +189,7 @@ public class Exam {
 ```java
 public class ExamConsole {
 
-    private Exam exam; // 참조 변수만 있고, 직접 생성하지 않음
+    private Exam exam;
 
     // Constructor Association Has-A
     public ExamConsole(Exam exam) {
