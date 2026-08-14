@@ -247,6 +247,225 @@ req.getRequestDispatcher("/WEB-INF/views/admin/menus/detail.jsp").forward(req, r
 
 **포워딩할 때 데이터를 담아두고 넘겨줄 저장소로는 이 중 무엇이 적절할까?** 컨트롤러와 뷰는 **하나의 요청-응답 사이클 안에서 포워딩으로 연결**되므로, 둘이 `request`와 `response`를 공유하게 된다. 그래서 `req.setAttribute("menu", menu)`처럼 **`request` 저장소**에 값을 담아두면, 포워딩된 JSP 쪽에서 `request.getAttribute("menu")`로 그 값을 그대로 꺼낼 수 있다. `session`이나 `application`을 쓰면 필요 이상으로 오래 남거나 다른 사용자·다른 요청과 뒤섞일 수 있으므로, 포워딩 시점의 값 전달에는 `request`가 맞는 범위다.
 
+## 10. 왜 배열과 `size`를 따로 들고 다니면 불편한가 — 박싱/언박싱
+
+`Menu[] menus`와 `int size`를 세트로 관리하다 보면, "함수 안에서 `size`를 바꾼 걸 함수 밖(`main`)에서도 반영되게 할 수 없을까?"라는 생각이 든다. `int`는 값 형식이라 함수에 넘기면 복사본이 넘어가므로(Call by Value), 함수 안에서 아무리 `size`를 바꿔도 밖의 값은 그대로다.
+
+그럼 "참조로 넘기면 되지 않나?"라는 생각이 이어진다 — 배열처럼 `Object`(참조형)로 감싸서 넘기면 함수 밖에서도 그 변경이 보이지 않을까? 여기서 확인해야 할 게 **박싱(boxing)/언박싱(unboxing)**이다.
+
+- `Object`는 **참조형**이다. 참조형에는 값 그 자체를 대입할 수 없다 — 값을 담으려면 그 값을 감싸는 **박스(래퍼 클래스)**가 필요하다.
+- `int` 같은 값 형식을 `Integer` 같은 **래퍼 클래스**로 감싸는 것이 **박싱**이고, 그 박스를 까서 다시 값을 꺼내는 것이 **언박싱**이다.
+- `Integer`를 비롯한 래퍼 클래스들은 전부 `Number`라는 추상 클래스에서 파생된다. 그런데 **`Number` 계열 래퍼 클래스는 함수의 인자로 전달되는 순간 자동으로 언박싱된다** — 즉 참조형으로 감싸서 넘겨봤자, 함수 안으로 들어가는 순간 다시 값 형식(`int`)처럼 취급된다.
+- 그래서 함수 쪽에서 매개변수를 `Integer size`로 받아도, 함수 안에서 그 값을 바꾸면 그 순간 다시 **박싱**되어 새로운 `Integer` 객체가 만들어질 뿐이다. 원래 넘어온 참조가 가리키던 값이 바뀌는 게 아니므로, 함수 밖의 `size`는 여전히 그대로다.
+
+**결론: `size` 하나만 참조로 넘겨서 함수 안에서 바꾸려는 시도 자체를 포기해야 한다.** 애초에 이 방향으로 문제를 풀 수 없다.
+
+## 11. 배열과 `size`를 하나의 캡슐로 묶기
+
+`size`를 참조로 넘기려는 시도가 막다른 길이라면, 접근 자체를 바꿔야 한다. **배열과 `size`는 원래부터 쌍으로 붙어다녀야 하는 데이터**다 — 그렇다면 이 둘을 아예 **하나의 객체**로 묶어버리면 된다.
+
+`workspace2/my-java-app/src/collection/MenuList.java`가 실제로 이 방식을 구현한다.
+
+```java
+package collection;
+
+import collection.entity.Menu;
+
+// 데이터를 수집하고 관리해주는 서비스 클래스
+// => 콜렉션
+public class MenuList {
+    private Menu[] menus = new Menu[10];
+    private int size = 0;
+
+    public int getSize() {
+        return size;
+    }
+
+    public void add(Menu menu) {
+        menus[size] = menu;
+        size++;
+    }
+
+    public Menu get(int i) {
+        return menus[i];
+    }
+}
+```
+
+`Menu[] menus`와 `int size`를 `MenuList` 하나로 캡슐화했다. 이제 배열과 `size`를 따로 주고받을 필요가 없다 — `MenuList` 객체 하나만 넘기면, 그 안에 `size`까지 함께 참조된다.
+
+```java
+// workspace2/my-java-app/src/collection/Ex2MenuCollection.java
+private static void input(MenuList menus) {
+    // ...
+    int size = menus.getSize();
+    Menu menu = new Menu(size + 1, korName, engName, price);
+    menus.add(menu);
+    // ...
+}
+
+private static void print(MenuList menus) {
+    int size = menus.getSize();
+    for (int i = 0; i < size; i++) {
+        Menu m = menus.get(i);
+        // ...
+    }
+}
+```
+
+`input`, `print` 두 함수 모두 `MenuList menus` **하나만** 매개변수로 받는다. 그 안에서 `menus.add(menu)`로 메뉴를 추가하는 서비스, `menus.get(i)`로 메뉴 하나를 꺼내는 서비스를 각각 호출할 뿐, 배열과 `size`를 별도로 주고받지 않는다.
+
+이렇게 **"데이터를 수집하고 관리하는 일"을 전담하는 역할자**를 만든 것이 바로 **컬렉션(Collection)**이다. `MenuList`는 `Menu`를 관리하는 전용 컬렉션인 셈이다.
+
+### 그런데 이 컬렉션은 `Menu`밖에 못 다룬다
+
+`MenuList`는 딱 `Menu`만 관리할 수 있다. 성적 데이터(`Exam`)를 관리하고 싶으면 `ExamList`를 또 만들어야 한다. 그런데 `add`, `get`, `getSize`처럼 **서비스 로직 자체는 거의 똑같고, 달라지는 건 오직 다루는 타입(`Menu[]` → `Exam[]`)뿐**이다. 그렇다면 이 컬렉션을 **형식에 구애받지 않고 두루 쓸 수 있게** 만들 수는 없을까?
+
+## 12. 컬렉션과 제네릭 — 배열에서 `ArrayList`로
+
+배열(`Menu[] menus = new Menu[100]`)은 **크기가 고정**되어 있고, 값을 채우고 관리하는 걸 전부 손으로 해야 한다(`count` 변수로 현재 채워진 개수를 따로 세는 등). 목록의 크기가 늘어나거나 줄어들 수 있고, 추가·삭제·조회가 잦다면 배열 대신 **컬렉션**을 쓰는 게 훨씬 편하다.
+
+`workspace2/maven_servlet_project`의 `ListServlet.java`가 실제로 배열 방식에서 `ArrayList` 방식으로 바뀐 걸 코드에 남아있는 주석으로 확인할 수 있다.
+
+```java
+@Override
+protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    // Menu[] menus = new Menu[100];
+    // int count = 0;
+
+    List<Menu> menus = new ArrayList<>();
+
+    InputStream is = req.getServletContext().getClassLoader().getResourceAsStream("data/menus.csv");
+    if (is != null) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            String line;
+            boolean isFirstLine = true;
+            while ((line = reader.readLine()) != null) {
+                if (isFirstLine) { isFirstLine = false; continue; }
+                String[] tokens = line.split(",");
+                if (tokens.length >= 7) {
+                    // ... 필드 파싱
+
+                    // menus[count++] = new Menu(...);
+                    Menu menu = new Menu(id, korName, engName, imgSrc, description, categoryName, price);
+                    menus.add(menu);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    req.setAttribute("menus", menus);
+    req.getRequestDispatcher("/WEB-INF/views/admin/menus/list.jsp").forward(req, resp);
+}
+```
+
+주석 처리된 두 줄(`Menu[] menus = new Menu[100];`, `menus[count++] = ...`)이 예전 배열 방식이고, 그 대신 `List<Menu> menus = new ArrayList<>()`로 선언해서 `menus.add(menu)`로 값을 추가한다. **크기를 미리 정해둘 필요가 없고, 채워진 개수(`count`)도 따로 관리할 필요 없이 `menus.size()`로 바로 알 수 있다.**
+
+`List<Menu>`의 `<Menu>` 부분이 **제네릭**이다 — 이 리스트에는 `Menu` 타입만 담을 수 있다고 미리 선언해두는 문법이다. 그 덕에 요소를 꺼낼 때(`menus.get(i)`) 별도의 형변환 없이 바로 `Menu`로 쓸 수 있다.
+
+| 선언 방식 | 특징 | 주의점 |
+|---|---|---|
+| `List<Menu>` | `Menu`만 저장, 타입 안정성 확보 | 다른 타입은 추가 불가 |
+| `List<Object>` | 여러 타입을 섞어 저장 가능 | 꺼낸 값을 쓰려면 형변환 필요 |
+| Raw Type(`List`) | 제네릭 타입 생략 | 컴파일 단계 타입 검사가 약해짐 |
+
+**선언은 상위 타입(`List`)으로, 생성은 구현 클래스(`ArrayList`)로** 하는 게 관례다.
+
+```java
+List<Menu> menus = new ArrayList<>();
+```
+
+`ListServlet`이 필요로 하는 기능이 "목록에 추가하고, 꺼내고, 개수를 센다"는 **목록 공통 기능**뿐이라면, 실제 구현체(`ArrayList`)가 무엇인지에 직접 의존할 필요가 없다 — 그래서 변수 타입은 인터페이스인 `List`로 선언한다.
+
+### JSP 쪽도 배열 접근에서 리스트 접근으로
+
+`WEB-INF/views/admin/menus/list.jsp`도 서블릿이 바뀐 방식에 맞춰 함께 바뀐다.
+
+```jsp
+<%
+    // 서블릿이 forward하면서 request에 담아 보낸 menus 값을 꺼내서 변수에 저장
+    List<Menu> menus = (List<Menu>) request.getAttribute("menus");
+    int count = menus.size();
+%>
+...
+<% for (int i = 0; i < count; i++) { %>
+  <tr>
+    <td><a href="detail.jsp?id=<%= menus.get(i).getId() %>"><%= menus.get(i).getKorName() %></a></td>
+    <td><%= menus.get(i).getCategoryName() %></td>
+    <td><%= menus.get(i).getPrice() %>원</td>
+  </tr>
+<% } %>
+```
+
+- 배열의 `menus[i]` → 리스트의 `menus.get(i)`
+- 배열의 `menus.length` → 리스트의 `menus.size()`
+- `request.getAttribute("menus")`의 반환 타입은 `Object`이므로, 실제로 `List<Menu>`의 기능(`.get()`, `.size()`)을 쓰려면 `(List<Menu>)`로 **형변환**이 필요하다 — 컨트롤러가 애초에 `menus`와 `count`를 각각 보냈던 이전 방식과 달리, 지금은 컬렉션 자체가 개수 정보(`.size()`)를 갖고 있으므로 **`count`를 별도로 `setAttribute`할 필요조차 없다.** 모델이 이미 갖고 있는 정보는 모델에서 직접 얻는 쪽이 전달 데이터를 더 단순하게 만든다.
+
+## 13. `Object`로 뭐든 담으면 안 되나 — 제네릭이 필요한 이유
+
+`MenuList`를 형식에 구애받지 않게 만들려면, `Menu[]` 대신 `Object[]`를 쓰면 될 것 같다. `Object`는 모든 타입의 부모이므로, `Object` 배열이라면 `Menu`든 숫자든 문자열이든 다 담을 수 있다 — 실제로 `ArrayList`를 제네릭 없이 그냥 쓰면 이런 "뭐든 담기는 리스트"와 똑같이 동작한다(`add`를 호출하면 내부 배열 공간이 부족할 때 알아서 더 큰 배열로 바꿔가며 계속 늘어난다).
+
+문제는 **꺼낼 때** 드러난다. `get(i)`로 값을 꺼내면 반환 타입이 `Object`다. `.` 을 찍어봐도 `Menu`의 기능(`getKorName()` 등)이 아니라 `Object`의 기능만 보인다 — **형변환을 직접 해줘야** 하고, **그 안에 실제로 어떤 타입의 객체가 들어있는지도 매번 확인**해야 한다.
+
+더 치명적인 건 **타입이 섞이는 걸 막을 방법이 없다**는 점이다. 학생 목록엔 학생만, 메뉴 목록엔 메뉴만 들어가는 게 보통인데, `Object`로 관리하면 실수로 다른 타입의 값이 섞여 들어가도 컴파일 시점에는 아무 문제가 없다 — 실행하다가 형변환에서 터진다.
+
+그렇다고 다시 `Menu` 전용, `Exam` 전용으로 컬렉션을 따로따로 만드는 건(11절의 `MenuList`처럼) 서비스 로직이 거의 똑같은데도 타입마다 클래스를 복제해야 해서 비효율적이다.
+
+### 제네릭 — "형식은 비워둘게, 네가 나중에 채워줘"
+
+여기서 **제네릭(Generic)**이 등장한다. 제네릭은 **아직 무엇이든 될 수 있는, 아직 정해지지 않은 자리**를 만드는 문법이다 — 클래스를 정의하는 시점에는 다룰 타입을 비워두고, 그 클래스를 실제로 사용하는 쪽에서 "이번엔 이 타입으로 채워줘"라고 지정한다.
+
+`workspace2/my-java-app/src/collection/GList.java`가 이걸 직접 구현한 예시다.
+
+```java
+package collection;
+
+public class GList<T> {
+    private Object[] objs = new Object[10];
+    private int size = 0;
+
+    public int getSize() {
+        return size;
+    }
+
+    public void add(T menu) {
+        if (objs.length <= size) {
+            // 배열을 큰걸로 바꿔주기
+        }
+
+        objs[size] = menu;
+        size++;
+    }
+
+    public T get(int i) {
+        return (T) objs[i];
+    }
+}
+```
+
+- 클래스 이름 옆의 `<T>`가 "타입을 나중에 받겠다"는 선언이다. 타입 이름 자리에는 관례적으로 `T`(Type)를 많이 쓴다.
+- 내부적으로는 여전히 `Object[]`로 값을 저장한다 — 그래서 어떤 타입이든 담을 수 있다.
+- 다만 `add(T menu)`, `get(int i): T`처럼 **바깥으로 드러나는 입출력 타입은 `T`로 고정**해둔다. 그래서 실제로 사용할 때 타입을 지정하고 나면, 그 타입만 들어가고 나올 수 있다.
+
+```java
+GList<Menu> list = new GList<>();
+```
+
+`<Menu>`라고 지정하는 순간, 이 `GList`는 `Menu` 전용처럼 동작한다 — `add`에는 `Menu`만 넣을 수 있고, `get`은 형변환 없이 바로 `Menu`를 돌려준다. 클래스는 **하나**만 만들어두고, 쓰는 쪽에서 타입만 바꿔 끼우면 되는 것이다.
+
+### `ArrayList`도 결국 이런 제네릭 클래스다
+
+`ArrayList` 역시 `GList`와 똑같은 원리로 만들어진 제네릭 컬렉션이다. 소스를 열어보면 `List`를 기반으로 구현되어 있다는 걸 확인할 수 있다. 그래서 12절에서 본 것처럼:
+
+- 변수 선언은 구체적인 구현 클래스(`ArrayList`)가 아니라 **더 유연한 상위 타입인 `List`**로 하는 걸 기본으로 삼는다.
+- `ArrayList`에만 있는 특수 기능을 쓰는 게 아니라면, `List`가 제공하는 공통 기능만으로 충분하다.
+
+목록(리스트) 계열 말고도 `Set`, `Map` 계열의 컬렉션도 있다는 것도 참고로 알아둘 만하다 — 지금은 목록을 다루는 `List`/`ArrayList`에 집중하면 된다.
+
+**정리**: 이제 배열을 직접 쓸 일은 거의 없다. `ArrayList`(와 제네릭)로 배열이 하던 일을 대신할 수 있고, `size`를 따로 관리하는 번거로움도, `Object`로 인한 형변환·타입 안전성 문제도 함께 해결된다.
+
 ## 🔗 관련 노트
 
 - [[034_웹 애플리케이션과 JSP]]
