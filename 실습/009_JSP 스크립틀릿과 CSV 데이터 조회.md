@@ -7,7 +7,7 @@ tags: [JSP, 스크립틀릿, 서블릿, 실습]
 
 # JSP 스크립틀릿과 CSV 데이터 조회
 
-[[034_웹 애플리케이션과 JSP]]에서 재스퍼(Jasper)가 `.jsp`를 서블릿으로 변환해준다는 걸 다뤘다. 이번 실습에서는 그 JSP 안에 자바 로직을 직접 끼워 넣어서, **DB 대신 CSV 파일에 저장된 메뉴 데이터를 자바 코드로 읽어와 화면에 출력**해본다.
+이전에 재스퍼(Jasper)가 `.jsp`를 서블릿으로 변환해준다는 걸 다뤘다. 이번 실습에서는 그 JSP 안에 자바 로직을 직접 끼워 넣어서, **DB 대신 CSV 파일에 저장된 메뉴 데이터를 자바 코드로 읽어와 화면에 출력**해본다.
 
 ## 1. 핵심 개념
 
@@ -76,7 +76,7 @@ target/classes/data/menus.csv         ← 빌드 산출물
 "data/menus.csv"                      ← 코드에서 쓰는 이름
 ```
 
-[[033_어노테이션 기반 매핑과 RTTI(리플렉션)]]에서 다룬 `App.java`의 `DirResourceSet` 매핑(`target/classes` → `/WEB-INF/classes`)이 여기서도 그대로 쓰인다.
+이전에 다룬 `App.java`의 `DirResourceSet` 매핑(`target/classes` → `/WEB-INF/classes`)이 여기서도 그대로 쓰인다.
 
 ### ClassLoader를 쓰는 이유 — 경로 독립성
 
@@ -417,7 +417,7 @@ public void _jspService(final HttpServletRequest request, final HttpServletRespo
 - 자바 코드가 아닌 일반 HTML 텍스트는 전부 `out.write("...")` 문장으로 포장되어, 브라우저에게 그대로 전달되는 문장이 된다.
 - 우리가 적은 스크립틀릿(`<% %>`) 안의 코드만 `out.write()` 밖으로 빠져나와 진짜 자바 실행 로직으로 동작한다.
 
-[[034_웹 애플리케이션과 JSP]]에서 다룬 것처럼, 이 변환 결과는 재스퍼가 대신 만들어주는 것이므로 사람이 직접 읽거나 수정할 필요가 없다 — 우리가 다루는 건 어디까지나 `.jsp` 원본 파일이다.
+이전에 다룬 것처럼, 이 변환 결과는 재스퍼가 대신 만들어주는 것이므로 사람이 직접 읽거나 수정할 필요가 없다 — 우리가 다루는 건 어디까지나 `.jsp` 원본 파일이다.
 
 ## 🔗 관련 노트
 

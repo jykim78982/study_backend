@@ -243,7 +243,7 @@ req.getRequestDispatcher("/WEB-INF/views/admin/menus/detail.jsp").forward(req, r
 | `page` | 한 페이지의 요청·응답이 끝나면 바로 사라진다 |
 | `request` | 하나의 요청-응답 사이(**포워딩되는 두 자원 사이**)에서만 공유되고 그 후 버려진다 |
 | `session` | 한 사용자가 사이트를 떠나기 전까지 그 사용자 전용 데이터를 저장한다 |
-| `application` | 애플리케이션이 시작되고 나서 완전히 종료될 때까지 저장된다 ([[034_웹 애플리케이션과 JSP]]의 `ServletContext`와 같은 범위) |
+| `application` | 애플리케이션이 시작되고 나서 완전히 종료될 때까지 저장된다 (이전에 다룬 `ServletContext`와 같은 범위) |
 
 **포워딩할 때 데이터를 담아두고 넘겨줄 저장소로는 이 중 무엇이 적절할까?** 컨트롤러와 뷰는 **하나의 요청-응답 사이클 안에서 포워딩으로 연결**되므로, 둘이 `request`와 `response`를 공유하게 된다. 그래서 `req.setAttribute("menu", menu)`처럼 **`request` 저장소**에 값을 담아두면, 포워딩된 JSP 쪽에서 `request.getAttribute("menu")`로 그 값을 그대로 꺼낼 수 있다. `session`이나 `application`을 쓰면 필요 이상으로 오래 남거나 다른 사용자·다른 요청과 뒤섞일 수 있으므로, 포워딩 시점의 값 전달에는 `request`가 맞는 범위다.
 
