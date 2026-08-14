@@ -3,7 +3,7 @@ tags: [JSP, 스크립틀릿, 서블릿, 실습]
 날짜: 2026-08-13
 ---
 
-> 🔗 관련 노트: [[034_웹 애플리케이션과 JSP]] · [[033_어노테이션 기반 매핑과 RTTI(리플렉션)]]
+> 🔗 관련 노트: [[034_웹 애플리케이션과 JSP]] · [[033_어노테이션 기반 매핑과 RTTI(리플렉션)]] · [[035_MVC 패턴과 모델2(서블릿·JSP 분리)]]
 
 # JSP 스크립틀릿과 CSV 데이터 조회
 
@@ -423,3 +423,4 @@ public void _jspService(final HttpServletRequest request, final HttpServletRespo
 
 - [[034_웹 애플리케이션과 JSP]]
 - [[033_어노테이션 기반 매핑과 RTTI(리플렉션)]]
+- [[035_MVC 패턴과 모델2(서블릿·JSP 분리)]]
