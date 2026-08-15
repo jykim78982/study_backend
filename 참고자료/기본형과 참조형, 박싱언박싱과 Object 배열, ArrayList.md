@@ -3,7 +3,7 @@ tags: [자바, 기본형, 참조형, 박싱, 언박싱, 래퍼클래스, 배열,
 날짜: 2026-08-15
 ---
 
-> 🔗 관련 노트: [[015_배열과 참조, 메모리 구조]] · [[017_클래스 배열과 참조 공유]]
+> 🔗 관련 노트: [[015_배열과 참조, 메모리 구조]] · [[017_클래스 배열과 참조 공유]] · [[035_MVC 패턴과 모델2(서블릿·JSP 분리)]]
 
 # 기본형과 참조형, 박싱/언박싱과 Object 배열, ArrayList
 
@@ -22,6 +22,18 @@ Workspace2에서 Boxing/Unboxing, Object 배열, 직접 만든 제네릭 리스�
 `Object[]` 배열에 **기본형 값을 넣고 싶을 때** 생긴다. 기본형은 객체가
 아니라서 애초에 `Object`가 될 자격이 없다.
 
+### 왜 하필 안 되는가 — `Object`는 "힙 주소만 담는 변수"라서
+
+자바의 모든 객체는 최상위 부모 `java.lang.Object`를 상속받는다. 즉
+`Object` 타입 변수의 정체는 **"힙 영역에 있는 어떤 객체의 주소값을
+담는 변수"** — 정확히는 그 이상도 이하도 아니다.
+
+기본형은 애초에 힙에 자기 자리가 없다(스택에 값 자체로 존재). "주소가
+없는 것"을 "주소만 담는 상자"에 넣으라는 요구 자체가 성립하지 않으니,
+`Object obj = 10;`은 문법적으로 막힌다 — 정확히는 자바가 컴파일 시점에
+자동으로 `Integer.valueOf(10)`을 끼워 넣어 힙에 주소를 하나 만들어준
+뒤에야 대입을 허락한다 (3번 섹션에서 이어서 다룬다).
+
 ## 2. 래퍼(Wrapper) 클래스 — 기본형을 객체로 감싼 것
 
 그래서 자바는 기본형 8개 하나하나에 대응하는 **객체 버전**을 만들어뒀다.
@@ -38,6 +50,28 @@ Workspace2에서 Boxing/Unboxing, Object 배열, 직접 만든 제네릭 리스�
 즉 "값 하나를 담은 상자"를 객체로 한 번 더 감싼 것 — 그래서 참조형이고,
 `Object`의 자식이 될 수 있고, 컬렉션(`List` 등 참조형만 다루는 자료구조)에
 들어갈 수 있다.
+
+```java
+// Integer 클래스 내부 구조 (개념적 재구성)
+public final class Integer extends Number {
+    private final int value;   // 순수 기본형 값을 필드로 보관
+
+    public Integer(int value) {
+        this.value = value;
+    }
+    public int intValue() {
+        return value;
+    }
+}
+```
+
+`int` 값 10을 `Integer`로 감싸는 순간, 이 데이터는 힙에 메모리를
+할당받는 **정식 객체**가 된다. 그래서 그제서야 주소값을 가지게 되고,
+`Object` 변수에도 담기고 컬렉션에도 들어갈 자격을 얻는다. 자바가
+"모든 걸 객체로 다루는 언어"를 지향하면서도(컬렉션·제네릭·멀티스레딩은
+전부 "주소값을 가진 객체"만 다루도록 설계됨) 성능이 중요한 계산에는
+값 자체를 쓰는 기본형을 남겨둔 결과, 이 둘 사이의 간극을 메우는 역할을
+래퍼 클래스가 한다.
 
 ## 3. Boxing / Unboxing — 값을 객체로, 객체를 값으로
 
@@ -73,6 +107,30 @@ int numFromObj = (Integer) obj;     // Object → Integer 캐스팅 + 자동 Unb
 수동 방식과 동일하다. `Integer castedNum = (Integer) obj;` 처럼 **Object에서
 꺼낼 때는 반드시 원래 넣었던 타입으로 캐스팅**해야 하는 것도 그대로다.
 
+### 컴파일 전/후 비교로 확인하는 "문법 설탕"
+
+```java
+// 컴파일 전 — 우리가 작성하는 코드
+Integer num = 100;               // Auto-boxing
+int primitive = num;             // Auto-unboxing
+Object obj = 200;                // Auto-boxing 후 Object로 업캐스팅
+int numFromObj = (Integer) obj;  // 다운캐스팅 후 Auto-unboxing
+```
+
+```java
+// 컴파일 후 — 바이트코드에 실제로 들어가는 코드
+Integer num = Integer.valueOf(100);
+int primitive = num.intValue();
+Object obj = Integer.valueOf(200);
+int numFromObj = ((Integer) obj).intValue();
+```
+
+**`new Integer()` 대신 `Integer.valueOf()`를 쓰는 이유:** `valueOf()`는
+내부에 **-128 ~ 127 범위의 `Integer` 객체를 미리 캐싱**해두고, 이
+범위 안의 값이면 새로 만들지 않고 캐시된 객체를 재사용한다 — 매번
+새 객체를 힙에 만드는 비용을 줄이는 메모리 최적화. 이 범위를 벗어나면
+그때는 정말로 새 객체를 만든다.
+
 ## 4. Object 배열 — 오토박싱 덕분에 뭐든 담는 만능 배열
 
 ```java
@@ -86,6 +144,17 @@ mixedArray[2] = 3.14;               // double → 자동 Boxing → Double로 �
 기본형을 넣을 수 있는 것처럼 보이는 건 대입되는 순간 자동으로 Boxing되어
 "래퍼 객체의 주소"로 바뀌기 때문이다. 즉 `Object[]`에는 **결국 참조만
 들어간다** — 이 규칙에 예외는 없다.
+
+`mixedArray[1] = 10;` 한 줄이 실행될 때 실제로 벌어지는 순서:
+
+1. 기본형 `10`을 발견한다.
+2. 컴파일러가 끼워 넣은 `Integer.valueOf(10)`이 힙에 `Integer` 객체를
+   만든다.
+3. 그렇게 만들어진 `Integer` 객체의 **힙 주소**가 `mixedArray[1]` 칸에
+   저장된다.
+
+즉 `Object[]` 안에는 숫자 10이 저장된 게 아니라, **그 10을 품고 있는
+`Integer` 객체가 어디 있는지 적힌 위치(주소)**가 저장된다.
 
 ```java
 for (Object item : mixedArray) {
@@ -109,7 +178,9 @@ Double doubleVal = (Double) value; // ❌ ClassCastException
 ```
 
 `Object` 변수 자체는 "무슨 타입인지" 컴파일 시점엔 모른다. 실제로 들어있는
-객체와 다른 타입으로 캐스팅을 시도하면 실행 시점에 예외가 터진다.
+객체와 다른 타입으로 캐스팅을 시도하면, JVM이 **힙에 있는 실제 객체의
+타입을 확인(class check)**하고 캐스팅하려는 타입과 일치하지 않을 때
+실행 시점에 예외를 던진다.
 
 **해결책 — `instanceof` 패턴 매칭으로 먼저 확인**
 
@@ -142,10 +213,28 @@ for (long i = 0L; i < 1_000_000; i++) {
 ```
 
 만약 `sum`이나 `i`를 `Long`(래퍼 타입)으로 선언했다면, 매 반복마다
-Boxing/Unboxing이 끼어들어 **새 래퍼 객체가 계속 생성**된다. 단순 누적
-연산처럼 성능이 중요한 반복문에서는 **래퍼 타입 대신 기본형을 쓰는 게
-원칙** — 래퍼 타입은 "객체가 필요한 곳"(컬렉션, 제네릭, `Object` 참조)에
-쓰고, 순수 계산에는 기본형을 쓴다.
+Boxing/Unboxing이 끼어들어 **새 래퍼 객체가 계속 생성**된다.
+
+```java
+// 나쁜 예 — 래퍼 타입으로 누적 연산
+Long sum = 0L;
+for (long i = 0; i < 1_000_000; i++) {
+    sum += i;
+}
+```
+
+`sum += i` 한 줄마다 벌어지는 일:
+
+1. `sum` 언박싱 (`sum.longValue()`)
+2. `long` 값끼리 덧셈 실행
+3. 덧셈 결과를 새로운 `Long` 객체로 다시 박싱 (`Long.valueOf(...)`)
+4. `sum` 변수에 방금 만든 `Long` 객체의 주소를 재할당
+
+즉 100만 번 반복하는 동안 **100만 개의 `Long` 객체가 힙에 생성됐다
+버려진다** — 극심한 메모리 할당·GC 부담. 단순 누적 연산처럼 성능이
+중요한 반복문에서는 **래퍼 타입 대신 기본형을 쓰는 게 원칙** — 래퍼
+타입은 "객체가 필요한 곳"(컬렉션, 제네릭, `Object` 참조)에 쓰고,
+순수 계산에는 기본형을 쓴다.
 
 ## 6. 배열 vs ArrayList — 무엇이 다른가
 
@@ -159,6 +248,18 @@ Boxing/Unboxing이 끼어들어 **새 래퍼 객체가 계속 생성**된다. �
 `List<Integer>`처럼 **기본형을 담는 것처럼 보이는 제네릭도 실제로는
 Integer(래퍼)를 담는다** — 자바 제네릭은 참조형만 다룰 수 있고, `int` 같은
 기본형 타입 매개변수(`List<int>`)는 애초에 문법적으로 허용되지 않는다.
+
+### 왜 하필 안 되는가 — 제네릭의 타입 소거(Type Erasure)
+
+자바 제네릭은 C++ 템플릿과 다르게, **컴파일 시점에만 타입을 검사하고
+컴파일이 끝나면 제네릭 타입 정보를 지워서(Object로 대체) 실행**한다
+(하위 호환성을 위해 선택된 방식). 그래서 `List<T>`의 `T`는 컴파일이
+끝나는 순간 전부 `Object`로 바뀐다.
+
+`Object`가 될 수 있으려면 힙 주소를 가진 객체여야 하는데, `int` 같은
+기본형은 애초에 힙 주소가 없다(1번 섹션 참고) — 그래서 `List<int>`는
+문법적으로 성립할 수가 없다. `List<Integer>`처럼 래퍼로 감싸야만
+비로소 "타입 소거 후 Object가 될 자격"을 얻는다.
 
 ## 7. ArrayList는 내부적으로 Object 배열이다
 
@@ -201,6 +302,23 @@ list.get(0).getKorName();
   먼저 일어나 `Integer`로 포장된 뒤 `Object[]` 칸에 저장된다. 즉
   `ArrayList`도 결국 **"Object 배열 + 자동 Boxing/Unboxing + 자동 크기
   늘리기"**를 합쳐놓은 것일 뿐이다.
+
+`List<Integer>`도 6번 섹션의 타입 소거 원리를 그대로 따른다 — 컴파일
+전/후를 비교하면 `GList<T>`와 완전히 같은 패턴이 보인다.
+
+```java
+// 컴파일 전 — 우리가 작성하는 코드
+List<Integer> list = new ArrayList<>();
+list.add(10);
+int num = list.get(0);
+```
+
+```java
+// 컴파일 후 — 실제 동작 (타입 소거된 모습)
+List list = new ArrayList();
+list.add(Integer.valueOf(10));                 // Auto-boxing
+int num = ((Integer) list.get(0)).intValue();  // 캐스팅 + Auto-unboxing
+```
 
 ## 8. 정리 — 헷갈리는 것들을 한 표로
 
