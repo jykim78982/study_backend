@@ -419,8 +419,3 @@ public void _jspService(final HttpServletRequest request, final HttpServletRespo
 
 이전에 다룬 것처럼, 이 변환 결과는 재스퍼가 대신 만들어주는 것이므로 사람이 직접 읽거나 수정할 필요가 없다 — 우리가 다루는 건 어디까지나 `.jsp` 원본 파일이다.
 
-## 🔗 관련 노트
-
-- [[034_웹 애플리케이션과 JSP]]
-- [[033_어노테이션 기반 매핑과 RTTI(리플렉션)]]
-- [[035_MVC 패턴과 모델2(서블릿·JSP 분리)]]
