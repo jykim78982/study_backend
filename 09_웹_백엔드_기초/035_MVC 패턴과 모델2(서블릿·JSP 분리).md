@@ -116,7 +116,7 @@ MVC와 그 변형들이 여러 이름으로 존재하지만 골자는 다 똑같
 
 ## 6. 실제 모델2 구현 — `admin/menus` 예시
 
-`workspace2/maven_servlet_project`에서 실제로 컨트롤러와 뷰를 분리한 구조를 확인할 수 있다.
+`maven_servlet_project`에서 실제로 컨트롤러와 뷰를 분리한 구조를 확인할 수 있다.
 
 ```
 src/main/java/com/example/controller/admin/menu/
@@ -215,40 +215,23 @@ CSV를 읽고 파싱하는 코드는 완전히 사라졌다. 남은 건 **`reque
 
 ### 이유를 일반화하면 — MVC 역할 분리(Separation of Concerns) 관점
 
-위 예시에서 본 "빈 화면"과 "오류"는 사실 더 큰 문제의 두 가지 증상일
-뿐이다. MVC 패턴의 핵심은 **역할 분리**이고, 사용자가 Controller나
-Model을 거치지 않고 View를 직접 요청하면 구조·보안·유지보수 측면에서
-아래 네 가지 문제가 함께 발생한다.
+위 예시에서 본 "빈 화면"과 "오류"는 사실 더 큰 문제의 두 가지 증상일 뿐이다. MVC 패턴의 핵심은 **역할 분리**이고, 사용자가 Controller나 Model을 거치지 않고 View를 직접 요청하면 구조·보안·유지보수 측면에서 아래 네 가지 문제가 함께 발생한다.
 
 **1. 비즈니스 로직 및 데이터 검증 우회**
 
-컨트롤러는 요청을 처리하기 전에 권한 확인, 입력값 검증, 세션 상태
-확인 같은 필수 로직을 수행한다. View를 직접 요청하면 이 검증 절차
-자체가 통과되어, 비인가 사용자가 화면에 접근하거나 잘못된 상태로
-페이지가 그려질 수 있다.
+컨트롤러는 요청을 처리하기 전에 권한 확인, 입력값 검증, 세션 상태 확인 같은 필수 로직을 수행한다. View를 직접 요청하면 이 검증 절차 자체가 통과되어, 비인가 사용자가 화면에 접근하거나 잘못된 상태로 페이지가 그려질 수 있다.
 
 **2. 데이터 미전달로 인한 화면 오류 (앞서 본 "오류"의 정체)**
 
-JSP 같은 동적 View는 Model에서 넘겨받은 데이터(DB 조회 결과, 사용자
-정보 등)를 바탕으로 화면을 그린다. 컨트롤러를 거치지 않고 View에
-바로 접근하면 그 데이터 자체가 준비되지 않은 상태라, 화면이 비정상
-출력되거나 `request.getAttribute(...)`가 `null`을 반환하며 오류로
-이어진다.
+JSP 같은 동적 View는 Model에서 넘겨받은 데이터(DB 조회 결과, 사용자 정보 등)를 바탕으로 화면을 그린다. 컨트롤러를 거치지 않고 View에 바로 접근하면 그 데이터 자체가 준비되지 않은 상태라, 화면이 비정상 출력되거나 `request.getAttribute(...)`가 `null`을 반환하며 오류로 이어진다.
 
 **3. 보안 취약점 노출**
 
-렌더링 전용 파일(뷰 파일, 템플릿)의 경로가 외부에 그대로 노출되면
-공격자가 시스템 내부 구조를 파악하기 쉬워진다. 프론트엔드/백엔드의
-경계가 모호해지면서, 원래 감춰져 있어야 할 로직이나 주석까지 그대로
-드러날 위험도 있다 — `WEB-INF`로 뷰 파일을 옮겨 막는 이유가 바로 이것.
+렌더링 전용 파일(뷰 파일, 템플릿)의 경로가 외부에 그대로 노출되면 공격자가 시스템 내부 구조를 파악하기 쉬워진다. 프론트엔드/백엔드의 경계가 모호해지면서, 원래 감춰져 있어야 할 로직이나 주석까지 그대로 드러날 위험도 있다 — `WEB-INF`로 뷰 파일을 옮겨 막는 이유가 바로 이것.
 
 **4. 유지보수성·재사용성 저하 (강한 결합)**
 
-사용자가 `/views/user/profile.jsp` 같은 View 파일 경로를 직접 호출
-하게 되면, 나중에 그 파일의 위치나 이름이 바뀔 때마다 사용자가 쓰던
-URL까지 전부 함께 바꿔야 한다. **컨트롤러라는 중계자를 두어 "요청
-URL"과 "실제 View 파일 경로"를 매핑**해둬야, View 쪽 구조가 바뀌어도
-바깥에 노출된 URL은 그대로 유지할 수 있다.
+사용자가 `/views/user/profile.jsp` 같은 View 파일 경로를 직접 호출하게 되면, 나중에 그 파일의 위치나 이름이 바뀔 때마다 사용자가 쓰던 URL까지 전부 함께 바꿔야 한다. **컨트롤러라는 중계자를 두어 "요청 URL"과 "실제 View 파일 경로"를 매핑**해둬야, View 쪽 구조가 바뀌어도 바깥에 노출된 URL은 그대로 유지할 수 있다.
 
 **요청 흐름 정리**
 
@@ -308,7 +291,7 @@ req.getRequestDispatcher("/WEB-INF/views/admin/menus/detail.jsp").forward(req, r
 
 `size`를 참조로 넘기려는 시도가 막다른 길이라면, 접근 자체를 바꿔야 한다. **배열과 `size`는 원래부터 쌍으로 붙어다녀야 하는 데이터**다 — 그렇다면 이 둘을 아예 **하나의 객체**로 묶어버리면 된다.
 
-`workspace2/my-java-app/src/collection/MenuList.java`가 실제로 이 방식을 구현한다.
+실습으로 만든 `MenuList.java`가 실제로 이 방식을 구현한다.
 
 ```java
 package collection;
@@ -339,7 +322,7 @@ public class MenuList {
 `Menu[] menus`와 `int size`를 `MenuList` 하나로 캡슐화했다. 이제 배열과 `size`를 따로 주고받을 필요가 없다 — `MenuList` 객체 하나만 넘기면, 그 안에 `size`까지 함께 참조된다.
 
 ```java
-// workspace2/my-java-app/src/collection/Ex2MenuCollection.java
+// Ex2MenuCollection.java
 private static void input(MenuList menus) {
     // ...
     int size = menus.getSize();
@@ -369,7 +352,7 @@ private static void print(MenuList menus) {
 
 배열(`Menu[] menus = new Menu[100]`)은 **크기가 고정**되어 있고, 값을 채우고 관리하는 걸 전부 손으로 해야 한다(`count` 변수로 현재 채워진 개수를 따로 세는 등). 목록의 크기가 늘어나거나 줄어들 수 있고, 추가·삭제·조회가 잦다면 배열 대신 **컬렉션**을 쓰는 게 훨씬 편하다.
 
-`workspace2/maven_servlet_project`의 `ListServlet.java`가 실제로 배열 방식에서 `ArrayList` 방식으로 바뀐 걸 코드에 남아있는 주석으로 확인할 수 있다.
+`maven_servlet_project`의 `ListServlet.java`가 실제로 배열 방식에서 `ArrayList` 방식으로 바뀐 걸 코드에 남아있는 주석으로 확인할 수 있다.
 
 ```java
 @Override
@@ -461,7 +444,7 @@ List<Menu> menus = new ArrayList<>();
 
 여기서 **제네릭(Generic)**이 등장한다. 제네릭은 **아직 무엇이든 될 수 있는, 아직 정해지지 않은 자리**를 만드는 문법이다 — 클래스를 정의하는 시점에는 다룰 타입을 비워두고, 그 클래스를 실제로 사용하는 쪽에서 "이번엔 이 타입으로 채워줘"라고 지정한다.
 
-`workspace2/my-java-app/src/collection/GList.java`가 이걸 직접 구현한 예시다.
+실습으로 만든 `GList.java`가 이걸 직접 구현한 예시다.
 
 ```java
 package collection;

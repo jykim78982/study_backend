@@ -132,12 +132,12 @@ Class<?> cls = Class.forName("com.example.Exam");
 
 ### 클래스 이름만으로 객체 만들기 — `new` 없이
 
-`Class.forName(...)`을 쓰면 **문자열로 된 클래스 이름만으로** 타입 정보를 얻을 수 있다. `workspace2/my-java-app/src/annotation/App.java`의 예시가 정확히 이 과정을 보여준다.
+`Class.forName(...)`을 쓰면 **문자열로 된 클래스 이름만으로** 타입 정보를 얻을 수 있다. 실습으로 만든 `App.java`의 예시가 정확히 이 과정을 보여준다.
 
 ```java
 package annotation;
 
-import com.newlecture.examlib.entity.Exam;
+import com.example.examlib.entity.Exam;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -148,7 +148,7 @@ public class App {
         // Runtime Type Information
 
         // 1. 동적으로 불러올 클래스의 전체 경로(패키지명 + 클래스명)를 문자열로 준비합니다.
-        String className = "com.newlecture.examlib.entity.Exam";
+        String className = "com.example.examlib.entity.Exam";
 
         // 2. Class.forName(): 문자열로 된 클래스 이름을 이용해 해당 클래스의 정보(Class 객체)를 메모리에 로드합니다.
         Class<?> cls = Class.forName(className);
