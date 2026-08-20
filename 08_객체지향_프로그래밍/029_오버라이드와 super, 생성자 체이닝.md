@@ -113,7 +113,7 @@ public MyExam(int kor, int eng, int math, int com) {
 
 "소스코드를 공개하기 싫으면 컴파일해서 배포하면 된다"는 말은 **틀렸다.** 컴파일된 `.class`/`.jar`만 배포해도, 도구를 쓰면 얼마든지 디컴파일해서 원래 코드에 가까운 형태로 다시 볼 수 있다.
 
-## 7. 종합 코드 — workspace2/my-java-app
+## 7. 종합 코드 — 실습으로 만든 예제 프로젝트
 
 **부모 — `Exam`(라이브러리, `examlib`)**
 
