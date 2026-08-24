@@ -1,6 +1,5 @@
 ---
 tags: [데이터베이스, SQL, WHERE, GROUP BY, HAVING, ORDER BY, FILTER, 실습]
-날짜: 2026-08-21
 ---
 
 > 🔗 관련 노트: [[011_SQL SELECT 구절 연습]]

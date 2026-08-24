@@ -3,7 +3,7 @@ tags: [자바, 예외처리, Exception, try-with-resources, JDBC]
 날짜: 2026-08-20
 ---
 
-> 🔗 관련 노트: [[038_JDBC API와 리포지토리 분리]] · [[005_JDBC API 메서드 체이닝 뜯어보기]] · [[000_오답노트]]
+> 🔗 관련 노트: [[038_JDBC API와 리포지토리 분리]] · [[005_JDBC API 메서드 체이닝 뜯어보기]] · [[002_예외 처리 오답노트]]
 
 # 예외 처리와 try-with-resources
 

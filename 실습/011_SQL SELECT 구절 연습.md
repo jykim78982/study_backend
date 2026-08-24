@@ -1,6 +1,5 @@
 ---
 tags: [데이터베이스, SQL, WHERE, GROUP BY, HAVING, ORDER BY, FILTER, 실습]
-날짜: 2026-08-21
 ---
 
 > 🔗 관련 노트: [[040_SQL 필터링·집계·정렬·매핑과 GET 파라미터 처리]]

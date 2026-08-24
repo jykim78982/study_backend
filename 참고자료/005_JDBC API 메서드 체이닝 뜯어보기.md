@@ -1,6 +1,5 @@
 ---
 tags: [자바, JDBC, PostgreSQL, 메서드체이닝]
-날짜: 2026-08-20
 ---
 
 > 🔗 관련 노트: [[038_JDBC API와 리포지토리 분리]] · [[039_예외 처리와 try-with-resources]]
