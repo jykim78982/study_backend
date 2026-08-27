@@ -2,9 +2,9 @@
 tags: [서블릿, JSP, JDBC, 리포지토리, 실습, MVC]
 ---
 
-> 🔗 관련 노트: [[032_톰캣과 서블릿, 생명주기와 빌드 도구]] · [[034_웹 애플리케이션과 JSP]] · [[035_MVC 패턴과 모델2(서블릿·JSP 분리)]] · [[036_EL과 4가지 저장소]] · [[038_JDBC API와 리포지토리 분리]]
+> 🔗 관련 노트: [[032_톰캣과 서블릿, 생명주기와 빌드 도구]] · [[034_웹 애플리케이션과 JSP]] · [[035_MVC 패턴과 모델2(서블릿·JSP 분리)]] · [[036_EL과 4가지 저장소]] · [[038_JDBC API와 리포지토리 분리]] · [[013_servlet 실습 — 메뉴 등록(Create) 기능과 퍼블리싱 연동]]
 
-# ncafe-servlet 실습 — 서블릿·JSP·리포지토리·JDBC 연동
+# servlet 실습 — 서블릿·JSP·리포지토리·JDBC 연동
 
 `ncafe-servlet`(Maven 프로젝트, groupId `com.ncafe`)은 서블릿·JSP·리포지토리(JDBC)를 프레임워크 없이 클래스 단위로 직접 엮어본 실습 프로젝트다. Jakarta Servlet API 6.0, JSTL 3.0, PostgreSQL JDBC 드라이버, 내장 Tomcat 10.1.20을 쓴다.
 

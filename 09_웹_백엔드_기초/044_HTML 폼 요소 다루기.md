@@ -2,7 +2,7 @@
 tags: [웹, HTML, 폼, 접근성, XHTML, HTML5]
 ---
 
-> 🔗 관련 노트: [[042_웹 퍼블리싱과 시맨틱 마크업(HTML)]] · [[043_HTML 문서 구조 — 아웃라인, 블록과 인라인 태그]]
+> 🔗 관련 노트: [[042_웹 퍼블리싱과 시맨틱 마크업(HTML)]] · [[043_HTML 문서 구조 — 아웃라인, 블록과 인라인 태그]] · [[013_servlet 실습 — 메뉴 등록(Create) 기능과 퍼블리싱 연동]]
 
 # HTML 폼 요소 다루기
 
@@ -184,3 +184,48 @@ public class CreateController extends HttpServlet {
 ```
 
 - `@WebServlet("...")` 안의 경로가 곧 그 서블릿이 응답할 URL이므로, `action`은 이 경로와 정확히 일치해야 요청이 해당 서블릿의 `doPost`로 라우팅된다. 경로가 하나라도 다르면(오타 포함) 404가 나거나, 의도치 않은 다른 서블릿이 요청을 가로챌 수 있다.
+
+## 12. 브라우저 자체 검증 — `required` 이후의 속성들
+
+`required`(8절)만으로는 "값이 아예 비어 있는지"만 걸러진다. 형식·범위까지 브라우저가 자바스크립트 없이 검증하게 하려면 아래 속성들을 조합한다.
+
+- **길이 제한**: `minlength`/`maxlength` — `<input>`뿐 아니라 `<textarea>`에도 똑같이 적용된다.
+  ```html
+  <input minlength="4" maxlength="12">
+  <textarea minlength="10" maxlength="200"></textarea>
+  ```
+- **숫자 범위**: `type="number"` + `min`/`max`/`step` — `step`을 생략하면 기본값이 `1`(정수 단위)이라, 소수점 값을 받으려면 `step="0.01"`처럼 소수 단위를 반드시 명시해야 한다.
+  ```html
+  <input type="number" min="0" max="100" step="5">
+  ```
+- **날짜 범위**: `type="date"` + `min`/`max` — 값 형식은 `YYYY-MM-DD`다.
+  ```html
+  <input type="date" min="2026-09-01" max="2026-09-30">
+  ```
+- **이메일·URL**: `type="email"`(공백 없는 `user@domain` 형식 검증, `multiple`을 추가하면 쉼표로 구분된 여러 이메일 허용), `type="url"`(`http://`·`https://` 같은 프로토콜 스키마가 없으면 검증 실패 — `placeholder`로 형식을 안내해주는 게 좋다).
+  ```html
+  <input type="email" multiple>
+  <input type="url" placeholder="https://github.com/username">
+  ```
+- **정규식 패턴**: `pattern` — 전화번호·비밀번호처럼 형식이 정해진 값에 정규식을 직접 건다. `title`을 함께 쓰면, 형식이 안 맞을 때 브라우저가 보여주는 오류 문구에 `title`의 문구가 그대로 안내로 노출된다.
+  ```html
+  <input type="tel" pattern="010-\d{4}-\d{4}"
+    title="010-XXXX-XXXX 형식으로 입력하세요.">
+  ```
+- **검증 자체를 끄기**: `novalidate` — `<form>`에 붙이면 그 폼 전체의 브라우저 검증이 꺼진다. `required`·`pattern` 등이 걸려 있어도 무시된다. 서버 쪽 검증 로직만 따로 테스트하고 싶을 때(일부러 유효하지 않은 값을 보내볼 때) 쓴다.
+  ```html
+  <form novalidate>
+  ```
+
+### `select`의 `required` 우회 함정
+
+`<select required>`를 걸어도, 첫 번째 `<option>`의 `value`를 생략하면 그 우회가 뚫린다.
+
+```html
+<select required>
+  <option>-- 스택을 선택하세요 --</option>
+</select>
+```
+
+- `value`를 안 쓰면 `<option>` 안의 **텍스트 자체가 그대로 `value`로 채워진다.** 위 예시라면 아무것도 고르지 않은 상태에서도 `value`가 `"-- 스택을 선택하세요 --"`라는, 실제로 값이 채워진 것처럼 취급되어 `required` 검증을 통과해버린다.
+- 그래서 "선택 안 함"을 표현하는 첫 옵션은 반드시 `<option value="">`처럼 **빈 문자열을 명시**해야, 진짜로 아무것도 고르지 않았을 때 `required`가 의도대로 막아준다.
