@@ -147,6 +147,40 @@ HTML은 이제 자바스크립트 없이도 이 검증의 일부를 자체적으
 
 ### POST
 
+```html
+<form action="/menus" method="post">
+  <label>한국명</label>
+  <input name="kor-name" required>
+
+  <label>영문명</label>
+  <input name="eng-name">
+
+  <button type="submit">등록</button>
+</form>
+```
+
 - 메뉴를 새로 등록하는 것처럼 서버에 무언가를 **만들어 달라고 요청**하는 것은 "조회"가 아니다. "메뉴를 등록해달라"는 요청은 의미상으로도 GET이 아니라 **생성 요청**이므로, 이런 폼은 GET이 아니라 **POST**로 전송해야 한다.
 - POST는 값을 URL이 아니라 요청 바디(body)에 담아 보내므로 길이 제한 문제에서 자유롭고, 값이 URL에 노출되지 않는다.
 - POST는 GET처럼 "페이지를 조회해서 그대로 받아오는" 요청이 아니기 때문에, 요청 자체만으로는 화면에 보여줄 페이지가 돌아오지 않는다. 그래서 등록 같은 POST 처리가 끝난 뒤에는 서버가 별도로 다른 페이지로 이동시켜주는 처리(리다이렉트 등)를 해줘야 사용자에게 결과 화면을 보여줄 수 있다.
+
+### `action`은 어떻게 정해지는가
+
+- `action`에 들어가는 값은 클라이언트가 마음대로 짓는 게 아니라, **이 요청을 처리하도록 서버에 매핑되어 있는 경로**다. `name`이 "서버가 값을 받을 키를 정해두는 계약"이라면, `action`은 "서버가 어떤 URL로 요청을 받을지 정해두는 계약"이다.
+- `action`을 아예 생략하면 현재 페이지의 URL로 그대로 제출된다 — 폼을 보여주는 페이지와 폼을 처리하는 서버 로직이 같은 경로를 공유할 때(같은 서블릿이 GET으로는 폼을 보여주고 POST로는 처리까지 하는 구조) 이렇게 쓰기도 한다.
+- 서블릿이 연결된 프로젝트라면, `action`은 곧 등록을 처리하는 서블릿의 매핑 경로다.
+
+```java
+@WebServlet("/admin/menus/create")
+public class CreateController extends HttpServlet {
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
+        // 등록 처리
+    }
+}
+```
+
+```html
+<form action="/admin/menus/create" method="post">
+```
+
+- `@WebServlet("...")` 안의 경로가 곧 그 서블릿이 응답할 URL이므로, `action`은 이 경로와 정확히 일치해야 요청이 해당 서블릿의 `doPost`로 라우팅된다. 경로가 하나라도 다르면(오타 포함) 404가 나거나, 의도치 않은 다른 서블릿이 요청을 가로챌 수 있다.
