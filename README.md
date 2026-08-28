@@ -78,6 +78,7 @@
 - [10_HTML/043_HTML 문서 구조 — 아웃라인, 블록과 인라인 태그](<./10_HTML/043_HTML 문서 구조 — 아웃라인, 블록과 인라인 태그.md>)
 - [10_HTML/044_HTML 폼 요소 다루기](<./10_HTML/044_HTML 폼 요소 다루기.md>)
 - [10_HTML/045_인라인·인라인블록 태그](<./10_HTML/045_인라인·인라인블록 태그.md>)
+- [10_HTML/047_인라인 태그 27종 — 쓰임과 예문](<./10_HTML/047_인라인 태그 27종 — 쓰임과 예문.md>)
 
 ### 11. CSS
 
@@ -98,4 +99,5 @@
 - [실습/011_SQL SELECT 구절 연습](<./실습/011_SQL SELECT 구절 연습.md>)
 - [실습/012_servlet 실습 — 서블릿·JSP·리포지토리·JDBC 연동](<./실습/012_servlet 실습 — 서블릿·JSP·리포지토리·JDBC 연동.md>)
 - [실습/013_servlet 실습 — 메뉴 등록(Create) 기능과 퍼블리싱 연동](<./실습/013_servlet 실습 — 메뉴 등록(Create) 기능과 퍼블리싱 연동.md>)
+- [실습/014_systemd 서비스 등록과 Nginx·Let's Encrypt HTTPS 배포](<./실습/014_systemd 서비스 등록과 Nginx·Let's Encrypt HTTPS 배포.md>)
 
