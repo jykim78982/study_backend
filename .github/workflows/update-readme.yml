@@ -34,23 +34,26 @@ jobs:
               num=${base%%_*}
               name=${base#*_}
               name=${name//_/ }
-              echo "### ${num}. ${name}"
+              echo "<details>"
+              echo "<summary>${num}. ${name}</summary>"
               echo
-              for f in "$base"/[0-9][0-9][0-9]_*.md; do
-                [ -e "$f" ] || continue
-                echo "- [${f%.md}](<./$f>)"
+              echo "\`${base}/\`"
+              for sub in 노트 실습 오답노트 참고자료; do
+                [ -d "${base}/${sub}" ] || continue
+                shopt -u nullglob
+                files=("${base}/${sub}"/[0-9][0-9][0-9]_*.md)
+                [ -e "${files[0]}" ] || continue
+                echo
+                echo "**${sub}**"
+                echo
+                for f in "${files[@]}"; do
+                  echo "- [${f%.md}](<./$f>)"
+                done
               done
+              echo
+              echo "</details>"
               echo
             done
-            if [ -d "실습" ]; then
-              echo "### 실습"
-              echo
-              for f in 실습/*.md; do
-                [ -e "$f" ] || continue
-                echo "- [${f%.md}](<./$f>)"
-              done
-              echo
-            fi
           } > README.md
 
       - name: Commit README if changed
