@@ -1,6 +1,5 @@
 ---
 tags: [데이터베이스, SQL, WHERE, GROUP BY, HAVING, HTTP, GET]
-날짜: 2026-08-20
 ---
 
 > 🔗 관련 노트: [[037_RDBMS와 SQL 기초]] · [[038_JDBC API와 리포지토리 분리]] · [[011_SQL SELECT 구절 연습]] · [[041_JOIN — INNER·OUTER와 주인공 개념]]
