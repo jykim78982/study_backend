@@ -2,7 +2,7 @@
 tags: [웹, 자바스크립트, React, Next.js, SSR, CSR]
 ---
 
-> 🔗 관련 노트: [[054_자바스크립트 플랫폼의 진화 — DOM API에서 jQuery, MVC, React(Flux)까지]] · [[026_React 개발 환경 구축 실습]]
+> 🔗 관련 노트: [[054_자바스크립트 플랫폼의 진화 — DOM API에서 jQuery, MVC, React(Flux)까지]] · [[026_React 개발 환경 구축 실습]] · [[058_요구사항 분석과 백로그 — 애자일과 폭포수 모델, 유즈케이스와 스토리]]
 
 # 프론트엔드의 변화와 Next.js의 필요성
 
