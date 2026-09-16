@@ -2,7 +2,7 @@
 tags: [웹, 자바스크립트, 비동기, Node.js, Next.js]
 ---
 
-> 🔗 관련 노트: [[024_Node.js·npm 실습]] · [[028_Next.js App Router와 공통 레이아웃 실습]]
+> 🔗 관련 노트: [[024_Node.js·npm 실습]] · [[028_Next.js App Router와 공통 레이아웃 실습]] · [[032_Next.js에서 스프링 부트 API 연동 — 메뉴 목록과 검색 폼 만들기 실습]]
 
 # 자바스크립트 비동기 처리 — 콜백에서 async·await까지
 

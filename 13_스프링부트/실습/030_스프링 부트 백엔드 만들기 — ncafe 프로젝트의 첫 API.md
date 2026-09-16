@@ -2,7 +2,7 @@
 tags: [웹, 스프링부트, Java, 실습]
 ---
 
-> 🔗 관련 노트: [[033_어노테이션 기반 매핑과 RTTI(리플렉션)]]
+> 🔗 관련 노트: [[033_어노테이션 기반 매핑과 RTTI(리플렉션)]] · [[031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository]]
 
 # 스프링 부트 백엔드 만들기 — ncafe 프로젝트의 첫 API
 
@@ -34,7 +34,7 @@ Spring Initializr는 스프링 부트 공식 프로젝트 생성기로, `pom.xml
 ### 2-1. `BackendApplication.java` — 진입점
 
 ```java
-package com.example.backend;
+package com.newlecture.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -64,7 +64,7 @@ Next.js 프론트엔드와 통신할 때는 `static/`을 거의 쓰지 않는다
 ### 2-3. `src/test/java` — 기본 테스트
 
 ```java
-package com.example.backend;
+package com.newlecture.backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -87,7 +87,7 @@ class BackendApplicationTests {
 ### 3-1. `Menu` 엔티티
 
 ```java
-package com.example.backend.entity;
+package com.newlecture.backend.entity;
 
 import lombok.Data;
 import java.time.LocalDate;
@@ -110,9 +110,9 @@ public class Menu {
 ### 3-2. `MenuController`
 
 ```java
-package com.example.backend.controller;
+package com.newlecture.backend.controller;
 
-import com.example.backend.entity.Menu;
+import com.newlecture.backend.entity.Menu;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
