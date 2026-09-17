@@ -278,6 +278,7 @@
 - [14_React와_Next.js/노트/057_프론트엔드의 변화와 Next.js의 필요성](<./14_React와_Next.js/노트/057_프론트엔드의 변화와 Next.js의 필요성.md>)
 - [14_React와_Next.js/노트/061_Next.js 중첩 레이아웃과 라우트 그룹](<./14_React와_Next.js/노트/061_Next.js 중첩 레이아웃과 라우트 그룹.md>)
 - [14_React와_Next.js/노트/062_Next.js 동적 라우트 — 슬러그와 우선순위](<./14_React와_Next.js/노트/062_Next.js 동적 라우트 — 슬러그와 우선순위.md>)
+- [14_React와_Next.js/노트/064_리액트 컴포넌트 생명주기 — 서버·클라이언트 실행, 하이드레이션, useEffect와 상태 변수](<./14_React와_Next.js/노트/064_리액트 컴포넌트 생명주기 — 서버·클라이언트 실행, 하이드레이션, useEffect와 상태 변수.md>)
 
 **실습**
 
