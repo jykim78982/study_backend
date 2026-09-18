@@ -320,6 +320,7 @@
 
 - [16_스프링부트/실습/030_스프링 부트 백엔드 만들기 — ncafe 프로젝트의 첫 API](<./16_스프링부트/실습/030_스프링 부트 백엔드 만들기 — ncafe 프로젝트의 첫 API.md>)
 - [16_스프링부트/실습/031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository](<./16_스프링부트/실습/031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository.md>)
+- [16_스프링부트/실습/033_ncafe 메뉴·카테고리 API 만들기 — DTO와 DI](<./16_스프링부트/실습/033_ncafe 메뉴·카테고리 API 만들기 — DTO와 DI.md>)
 
 </details>
 
