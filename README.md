@@ -283,7 +283,7 @@
 
 **실습**
 
-- [14_React와_Next.js/실습/026_React 개발 환경 구축 실습](<./14_React와_Next.js/실습/026_React 개발 환경 구축 실습.md>)
+- [14_React와_Next.js/실습/026_React 개발 환경의 진화 — CDN에서 번들링까지](<./14_React와_Next.js/실습/026_React 개발 환경의 진화 — CDN에서 번들링까지.md>)
 - [14_React와_Next.js/실습/027_Next.js 프로젝트 생성 실습](<./14_React와_Next.js/실습/027_Next.js 프로젝트 생성 실습.md>)
 - [14_React와_Next.js/실습/028_Next.js App Router와 공통 레이아웃 실습](<./14_React와_Next.js/실습/028_Next.js App Router와 공통 레이아웃 실습.md>)
 - [14_React와_Next.js/실습/032_Next.js 실무형 메뉴 목록 페이지 만들기 — SSR, 상태, 이벤트, 컴포넌트 분리 실습](<./14_React와_Next.js/실습/032_Next.js 실무형 메뉴 목록 페이지 만들기 — SSR, 상태, 이벤트, 컴포넌트 분리 실습.md>)
@@ -292,6 +292,7 @@
 
 - [14_React와_Next.js/참고자료/011_React Hook 참고자료](<./14_React와_Next.js/참고자료/011_React Hook 참고자료.md>)
 - [14_React와_Next.js/참고자료/013_서버 컴포넌트와 클라이언트 컴포넌트 참고자료](<./14_React와_Next.js/참고자료/013_서버 컴포넌트와 클라이언트 컴포넌트 참고자료.md>)
+- [14_React와_Next.js/참고자료/014_기업에서 Tailwind 대신 CSS Modules를 쓰는 이유 참고자료](<./14_React와_Next.js/참고자료/014_기업에서 Tailwind 대신 CSS Modules를 쓰는 이유 참고자료.md>)
 
 </details>
 
