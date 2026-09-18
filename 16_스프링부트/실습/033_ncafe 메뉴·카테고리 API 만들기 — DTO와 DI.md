@@ -2,39 +2,37 @@
 tags: [웹, 스프링부트, Java, PostgreSQL, JDBC, DTO, DI, 실습]
 ---
 
-> 🔗 관련 노트: [[030_스프링 부트 백엔드 만들기 — ncafe 프로젝트의 첫 API]] · [[031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository]] · [[065_스프링의 정체성 — DI 컨테이너, IoC, 인터페이스와 병렬 개발]]
+> 🔗 관련 노트: [[030_스프링 부트 백엔드 만들기 — ncafe 프로젝트의 첫 API]] · [[031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository]] · [[065_스프링의 정체성 — DI 컨테이너, IoC, 인터페이스와 병렬 개발]] · [[032_Next.js 실무형 메뉴 목록 페이지 만들기 — SSR, 상태, 이벤트, 컴포넌트 분리 실습]]
 
 # ncafe 메뉴·카테고리 API 만들기 — DTO와 DI
 
-[[031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository]]에서는 아직 DI를 배우지 않아 컨트롤러에서 `DataSource`·`JdbcTemplate`을 직접 `new`로 조립하고, `Menu` 엔티티를 그대로 컨트롤러가 반환했다. 이번 실습은 그 두 가지를 모두 바로잡는다 — 엔티티(`Category`, `Menu`)와 화면 전용 DTO(`CategoryDTO`, `MenuSummaryDTO`)를 분리하고, `@Autowired`로 `Repository`를 주입받아 `GET /api/categories`·`GET /api/menus`가 프론트엔드 `MenuCard`가 요구하는 형태의 JSON을 반환하도록 만든다.
+**대상**: Spring Boot로 엔티티를 Controller에서 직접 반환하던 사람
 
-## 0. 준비물
+**목표**: `GET /api/categories`와 `GET /api/menus`를 DTO 기반으로 만들고, `@Autowired`로 Repository를 주입받는다
+
+**완성물**: `localhost:8080/api/categories`와 `localhost:8080/api/menus`가 프론트엔드 `MenuCard`가 요구하는 JSON을 반환하는 Spring Boot 프로젝트
+
+**필수 준비물**
 
 - Java 17 이상, Spring Boot 3.x, PostgreSQL 14+
-- `ncafe` 데이터베이스에 `categories`, `menus`(그리고 `favoriteCount` 집계에 쓰이는 `favorites`) 테이블이 이미 만들어져 있어야 한다.
+- `ncafe` 데이터베이스에 `categories`, `menus` 테이블이 이미 생성되어 있어야 한다.
 - `application.properties`에 데이터베이스 접속 정보가 설정되어 있어야 한다.
 
 ## 1. 프로젝트 폴더 구조 만들기
 
-패키지 루트: `src/main/java/com/newlecture/backend/`
+Spring Boot 프로젝트의 기본 골격을 만들고, 이번 실습에서 만들 파일들의 위치를 확인한다.
+
+파일: `src/main/java/com/newlecture/backend/`
+
+주의: 디렉토리를 잘못 잡고 실행하면 엉뚱한 곳에 폴더가 와르르 만들어질 수 있다. 신경 쓰인다면 직접 만들어도 된다.
 
 ```
 mkdir -p src/main/java/com/newlecture/backend/{controller,entity,repository,repository/jdbc,dto}
 ```
 
-Windows PowerShell에서는 `mkdir -p` 옵션이 없으므로, 폴더를 하나씩 만들거나 `New-Item -ItemType Directory -Force -Path`를 사용한다.
+Windows PowerShell에서는 `mkdir -p` 대신 `mkdir`를 여러 번 실행하거나, `New-Item -ItemType Directory -Force -Path`를 사용한다.
 
-```powershell
-New-Item -ItemType Directory -Force -Path src/main/java/com/newlecture/backend/controller
-New-Item -ItemType Directory -Force -Path src/main/java/com/newlecture/backend/entity
-New-Item -ItemType Directory -Force -Path src/main/java/com/newlecture/backend/repository
-New-Item -ItemType Directory -Force -Path src/main/java/com/newlecture/backend/repository/jdbc
-New-Item -ItemType Directory -Force -Path src/main/java/com/newlecture/backend/dto
-```
-
-다른 디렉터리에서 실행하면 엉뚱한 위치에 폴더 구조가 통째로 새로 생겨버릴 수 있으므로, 신경 쓰인다면 IDE에서 직접 폴더를 만들어도 된다.
-
-`application.properties`(`src/main/resources/application.properties`)에는 데이터베이스 접속 정보를 채운다.
+`application.properties`(`src/main/resources/application.properties`) 확인:
 
 ```
 spring.datasource.url=jdbc:postgresql://host:5432/dbname
@@ -43,18 +41,29 @@ spring.datasource.password=여기에 실제 비밀번호
 spring.datasource.driver-class-name=org.postgresql.Driver
 ```
 
-**정리**
+실제 데이터베이스 접속 정보에 맞게 수정한다.
 
-- Spring Boot 프로젝트는 `controller`(HTTP 요청 처리), `entity`(테이블과 1:1 대응), `repository`(데이터 접근 로직), `dto`(화면에 보여줄 데이터) 패키지로 나눈다.
-- 이 구조를 지켜두면 나중에 서비스 계층(`service`)을 추가할 때도 기존 파일을 옮길 필요가 없다.
+**✅ 확인**
 
-## 2. 엔티티 — 데이터베이스 테이블의 "Java 버전"
+- `src/main/java/com/newlecture/backend/` 아래에 `controller`, `entity`, `repository`, `dto` 폴더가 생겼다.
+- `application.properties`에 데이터베이스 접속 정보가 적혀 있다.
 
-엔티티는 데이터베이스 테이블과 **1:1로 대응**하는 클래스다. 화면에 보여줄 때만 필요한 필드(`categoryName`, `count` 등 테이블에 없는 값)는 절대 엔티티에 넣지 않는다 — 그런 값은 3단계의 DTO가 담당한다.
+**🎓 newlec 쌤의 코멘트**
 
-### 2-1. `Category` 엔티티
+Spring Boot 프로젝트는 패키지 구조를 미리 정해두는 게 중요하다. `controller`는 HTTP 요청을 받고, `entity`는 데이터베이스 테이블과 1:1로 대응하는 클래스를 만든다. `repository`는 데이터 접근 로직을 구현하고, `dto`는 화면에 보여줄 데이터를 담는 클래스다. 이 구조를 지키면 나중에 서비스 계층을 추가할 때도 파일을 옮길 필요가 없다.
 
-`src/main/java/com/newlecture/backend/entity/Category.java`
+**📝 이 단계의 핵심**
+
+- Spring Boot 프로젝트는 `controller`, `entity`, `repository`, `dto` 패키지로 나눈다.
+- `application.properties`에 데이터베이스 접속 정보를 적어둔다.
+
+## 2. 엔티티 만들기
+
+데이터베이스 테이블의 열을 Java 필드로 변환하는 엔티티 클래스를 만든다. 엔티티는 데이터베이스와 1:1로 대응하는 클래스다.
+
+### 2-1. `Category` 엔티티 만들기
+
+파일: `src/main/java/com/newlecture/backend/entity/Category.java`
 
 ```java
 package com.newlecture.backend.entity;
@@ -81,11 +90,11 @@ public class Category {
 }
 ```
 
-`categories` 테이블의 `id`, `name`, `sort_order` 열이 그대로 `id`, `name`, `sortOrder` 필드가 된다(스네이크 케이스 → 카멜 케이스).
+### 2-2. `Menu` 엔티티 만들기
 
-### 2-2. `Menu` 엔티티 (기존 파일 덮어쓰기)
+기존 파일은 다음 내용으로 덮어쓴다.
 
-`src/main/java/com/newlecture/backend/entity/Menu.java`
+파일: `src/main/java/com/newlecture/backend/entity/Menu.java`
 
 ```java
 package com.newlecture.backend.entity;
@@ -138,20 +147,29 @@ public class Menu {
 }
 ```
 
-**정리**
+**✅ 확인**
+
+- `Category.java`와 `Menu.java` 파일이 `entity` 패키지에 생겼다.
+- 각 클래스에 데이터베이스 테이블의 열과 같은 필드가 있다.
+
+**🎓 newlec 쌤의 코멘트**
+
+엔티티는 데이터베이스 테이블의 "Java 버전"이다. `categories` 테이블의 `id`, `name`, `sort_order` 열이 `Category` 클래스의 `id`, `name`, `sortOrder` 필드가 된다. 엔티티는 데이터베이스와 1:1로 대응해야 하므로, 화면에 보여줄 때 필요한 `categoryName` 같은 필드는 엔티티에 넣지 않는다. 그런 필드는 DTO에서 처리한다.
+
+**📝 이 단계의 핵심**
 
 - 엔티티는 데이터베이스 테이블과 1:1로 대응하는 클래스다.
-- 엔티티에는 화면 전용 필드(`categoryName` 등)를 넣지 않는다.
+- 엔티티에는 화면에 보여줄 때 필요한 필드(`categoryName` 등)를 넣지 않는다.
 
-## 3. DTO — 화면에 필요한 필드만 담기
+## 3. DTO 만들기
 
-DTO(Data Transfer Object)는 "이 화면에는 이 데이터만 보여줘"라고 말하는 클래스다. 엔티티와 달리 여러 테이블의 값을 합치거나, 계산된 값(개수 등)을 담을 수 있다.
+DTO(Data Transfer Object)는 화면에 보여줄 데이터를 담는 클래스다. 엔티티와 달리, 화면에 필요한 필드만 골라서 담는다.
 
-> 원래는 Lombok으로 생성자·Getter/Setter를 줄이는 게 일반적이지만, 환경에 따라 Lombok 설정 오류가 날 수 있어 이번 실습은 직접 코딩한다. Lombok 사용이 익숙하면 그걸 써도 무방하다.
+다음 코드에서 생성자, Getter/Setter 등은 원래 Lombok을 사용할 수도 있다. 다만 환경에 따라 오류가 날 수 있어서 이번 실습은 직접 코딩한다. Lombok 사용이 편하면 그걸 사용해도 된다.
 
-### 3-1. `CategoryDTO`
+### 3-1. `CategoryDTO` 만들기
 
-`src/main/java/com/newlecture/backend/dto/CategoryDTO.java`
+파일: `src/main/java/com/newlecture/backend/dto/CategoryDTO.java`
 
 ```java
 package com.newlecture.backend.dto;
@@ -178,9 +196,9 @@ public class CategoryDTO {
 }
 ```
 
-### 3-2. `MenuSummaryDTO`
+### 3-2. `MenuSummaryDTO` 만들기
 
-`src/main/java/com/newlecture/backend/dto/MenuSummaryDTO.java`
+파일: `src/main/java/com/newlecture/backend/dto/MenuSummaryDTO.java`
 
 ```java
 package com.newlecture.backend.dto;
@@ -230,20 +248,27 @@ public class MenuSummaryDTO {
 }
 ```
 
-`MenuSummaryDTO`의 `categoryName`은 `menus` 테이블에 없는 값이다 — `categories` 테이블에서 가져와 `menus`의 데이터와 합쳐서 채운다(5·6단계의 SQL `JOIN`이 이 역할을 한다). `favoriteCount`도 마찬가지로 `favorites` 테이블을 세어서 만든 계산값이다.
+**✅ 확인**
 
-**정리**
+- `CategoryDTO.java`와 `MenuSummaryDTO.java` 파일이 `dto` 패키지에 생겼다.
+- `CategoryDTO`에는 `count` 필드가 있고, `MenuSummaryDTO`에는 `categoryName`, `favoriteCount` 필드가 있다.
 
-- DTO는 화면에 필요한 필드만 골라 담는 클래스다.
-- 데이터베이스에 없는 필드(`categoryName`, `count`, `favoriteCount`)는 DTO에서만 다룬다.
+**🎓 newlec 쌤의 코멘트**
 
-## 4. Repository 인터페이스 — "무엇을 할 수 있는지"만 정의
+DTO는 "이 화면에 이 데이터만 보여줘"라고 말하는 클래스다. `MenuSummaryDTO`의 `categoryName`은 `menus` 테이블에 없는 필드다. 이 필드는 `categories` 테이블에서 가져와서 `menus` 테이블의 데이터와 합쳐서 만들어야 한다. 엔티티에 `categoryName`을 넣으면 안 되는 이유가 바로 이것이다. 엔티티는 데이터베이스와 1:1이어야 하므로, 데이터베이스에 없는 필드는 넣을 수 없다.
 
-Repository 인터페이스는 계약서다. "이 데이터를 이렇게 가져와줘"라는 메서드 시그니처만 정의하고, 실제 구현(JDBC냐 JPA냐)은 숨긴다. 이렇게 해두면 나중에 구현 기술을 바꿔도 인터페이스를 쓰는 쪽(컨트롤러) 코드는 그대로 유지된다.
+**📝 이 단계의 핵심**
 
-### 4-1. `CategoryRepository`
+- DTO는 화면에 필요한 필드만 골라서 담는 클래스다.
+- 데이터베이스에 없는 필드(`categoryName`, `count`)는 DTO에서 처리한다.
 
-`src/main/java/com/newlecture/backend/repository/CategoryRepository.java`
+## 4. Repository 인터페이스 만들기
+
+Repository 인터페이스는 "이 데이터를 이렇게 가져와줘"라고 요청하는 계약서다. 실제 구현은 다음 단계에서 `JdbcTemplate`으로 만든다.
+
+### 4-1. `CategoryRepository` 인터페이스 만들기
+
+파일: `src/main/java/com/newlecture/backend/repository/CategoryRepository.java`
 
 ```java
 package com.newlecture.backend.repository;
@@ -256,9 +281,11 @@ public interface CategoryRepository {
 }
 ```
 
-### 4-2. `MenuRepository` (기존 파일과 다르면 덮어쓰기)
+### 4-2. `MenuRepository` 인터페이스 만들기
 
-`src/main/java/com/newlecture/backend/repository/MenuRepository.java`
+기존 내용과 다른 부분이 있으면 다음 내용으로 덮어쓴다.
+
+파일: `src/main/java/com/newlecture/backend/repository/MenuRepository.java`
 
 ```java
 package com.newlecture.backend.repository;
@@ -274,16 +301,27 @@ public interface MenuRepository {
 }
 ```
 
-[[031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository]]의 `MenuRepository`는 `Menu` 엔티티를 반환했지만, 이번에는 `MenuSummaryDTO`를 반환한다 — 컨트롤러가 클라이언트에 응답할 형태를 Repository 계약 단계에서부터 명확히 하는 것이다.
+**✅ 확인**
 
-**정리**
+- `CategoryRepository.java`와 `MenuRepository.java` 파일이 `repository` 패키지에 생겼다.
+- 각 인터페이스에 메서드 시그니처만 있고, 구현체는 없다.
+
+**🎓 newlec 쌤의 코멘트**
+
+인터페이스는 "무엇을 할 수 있는지"만 정의하고, "어떻게 하는지"는 구현체에서 결정한다. `CategoryRepository` 인터페이스는 `findAllWithCount()` 메서드가 있다고만 선언한다. 이 메서드가 실제로는 `JdbcTemplate`으로 SQL을 실행해서 데이터를 가져오는지는 구현체(`JdbcCategoryRepository`)에서 결정한다. 이렇게 하면 나중에 `JdbcTemplate` 대신 JPA를 사용해도, 인터페이스만 그대로 유지하면 된다.
+
+**📝 이 단계의 핵심**
 
 - Repository 인터페이스는 "무엇을 할 수 있는지"만 정의한다.
-- 구현체는 5·6단계에서 `JdbcTemplate`으로 만든다.
+- 구현체는 다음 단계에서 `JdbcTemplate`으로 만든다.
 
-## 5. `JdbcCategoryRepository` — `CategoryRepository` 구현
+## 5. `JdbcCategoryRepository` 구현
 
-`src/main/java/com/newlecture/backend/repository/jdbc/JdbcCategoryRepository.java`
+`JdbcTemplate`을 사용해 `CategoryRepository` 인터페이스를 구현한다. `categories` 테이블에서 데이터를 가져오고, `menus` 테이블에서 각 카테고리의 메뉴 수를 세어 `count` 필드에 넣는다.
+
+### 5-1. `JdbcCategoryRepository` 만들기
+
+파일: `src/main/java/com/newlecture/backend/repository/jdbc/JdbcCategoryRepository.java`
 
 ```java
 package com.newlecture.backend.repository.jdbc;
@@ -324,9 +362,15 @@ public class JdbcCategoryRepository implements CategoryRepository {
 }
 ```
 
-`LEFT JOIN`으로 `menus`를 붙이고 `GROUP BY`로 묶어서, `menus`가 0개인 카테고리도 `count = 0`으로 함께 나오게 한다(`INNER JOIN`을 쓰면 메뉴가 없는 카테고리가 아예 결과에서 빠진다). `status != 'hidden'` 조건으로 숨김 처리된 메뉴는 개수에서 제외한다.
+**✅ 확인**
 
-`@Repository`는 "이 클래스는 Spring이 관리하는 빈(bean)입니다"라고 알리는 어노테이션이다. Spring은 이 표시를 보고 `JdbcCategoryRepository` 객체를 자동으로 만들고, 생성자가 요구하는 `JdbcTemplate`을 알아서 주입한다. `JdbcTemplate` 자체도 Spring Boot가 `application.properties`의 접속 정보를 읽어 자동으로 빈으로 만들어주므로, 우리가 직접 `new JdbcTemplate(...)`을 할 필요가 없다.
+- `JdbcCategoryRepository.java` 파일이 `repository/jdbc` 패키지에 생겼다.
+- `@Repository` 어노테이션이 붙어 있다.
+- `JdbcTemplate`을 생성자로 주입받는다.
+
+**🎓 newlec 쌤의 코멘트**
+
+`@Repository` 어노테이션은 "이 클래스는 Spring이 관리하는 빈(bean)입니다"라고 Spring에게 알려주는 것이다. Spring은 이 어노테이션을 보고, `JdbcCategoryRepository` 객체를 자동으로 생성하고, 필요한 의존성(`JdbcTemplate`)을 주입한다. `JdbcTemplate`은 Spring Boot가 `application.properties`의 데이터베이스 접속 정보로 자동으로 생성해준다. 우리가 직접 `new JdbcTemplate()`을 할 필요가 없다.
 
 **❌ 자주 하는 실수**
 
@@ -335,9 +379,18 @@ public class JdbcCategoryRepository implements CategoryRepository {
 | `JdbcCategoryRepository`가 빈으로 등록되지 않음 | `@Repository` 어노테이션 누락 | 클래스 위에 `@Repository` 추가 |
 | `JdbcTemplate`이 `null` | `JdbcTemplate`이 빈으로 등록되지 않음 | `application.properties`에 데이터베이스 접속 정보 확인 |
 
-## 6. `JdbcMenuRepository` — `MenuRepository` 구현
+**📝 이 단계의 핵심**
 
-`src/main/java/com/newlecture/backend/repository/jdbc/JdbcMenuRepository.java`
+- `@Repository` 어노테이션은 Spring이 빈으로 관리한다는 뜻이다.
+- `JdbcTemplate`은 Spring Boot가 자동으로 생성해준다.
+
+## 6. `JdbcMenuRepository` 구현
+
+`JdbcTemplate`을 사용해 `MenuRepository` 인터페이스를 구현한다. `menus` 테이블에서 데이터를 가져오고, `categories` 테이블에서 `categoryName`을 가져와 합친다.
+
+### 6-1. `JdbcMenuRepository` 만들기
+
+파일: `src/main/java/com/newlecture/backend/repository/jdbc/JdbcMenuRepository.java`
 
 ```java
 package com.newlecture.backend.repository.jdbc;
@@ -481,18 +534,35 @@ public class JdbcMenuRepository implements MenuRepository {
 }
 ```
 
-네 메서드 모두 SQL 본문(`SELECT ... JOIN ... WHERE`)은 거의 같고, `WHERE` 절의 조건과 `RowMapper` 람다에 넘기는 파라미터만 다르다. `categoryName`은 `categories`와의 `LEFT JOIN`으로, `favoriteCount`는 `favorites` 테이블을 세는 서브쿼리로 채운다 — 이렇게 하면 SQL 한 번으로 화면에 필요한 데이터를 모두 가져올 수 있다.
+**✅ 확인**
+
+- `JdbcMenuRepository.java` 파일이 `repository/jdbc` 패키지에 생겼다.
+- `@Repository` 어노테이션이 붙어 있다.
+- `JdbcTemplate`을 생성자로 주입받는다.
+
+**🎓 newlec 쌤의 코멘트**
+
+`JdbcMenuRepository`의 SQL은 `menus` 테이블과 `categories` 테이블을 `JOIN`해서 `categoryName`을 가져온다. `favoriteCount`는 서브쿼리로 `favorites` 테이블에서 세어온다. 이렇게 하면 한 번의 SQL로 필요한 데이터를 모두 가져올 수 있다. `JdbcTemplate`의 `query` 메서드는 `RowMapper`를 받아, 각 행을 DTO로 변환한다.
 
 **❌ 자주 하는 실수**
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
 | `categoryName`이 `null` | `LEFT JOIN`이 아닌 `INNER JOIN` 사용 | `LEFT JOIN`으로 변경 |
-| `favoriteCount`가 항상 `0` | 서브쿼리 누락 또는 `menu_id` 조건 오류 | 서브쿼리와 조건 확인 |
+| `favoriteCount`가 `0` | 서브쿼리 누락 | 서브쿼리 추가 |
 
-## 7. `CategoryController` — `@Autowired`로 주입받기
+**📝 이 단계의 핵심**
 
-`src/main/java/com/newlecture/backend/controller/CategoryController.java`
+- `JdbcTemplate`의 `query` 메서드는 `RowMapper`를 받아 행을 DTO로 변환한다.
+- `LEFT JOIN`으로 `categoryName`을 가져오고, 서브쿼리로 `favoriteCount`를 계산한다.
+
+## 7. `CategoryController` 만들기
+
+`CategoryController`를 만들어 `GET /api/categories` 엔드포인트를 구현한다. `@Autowired`로 `CategoryRepository`를 주입받는다.
+
+### 7-1. `CategoryController` 만들기
+
+파일: `src/main/java/com/newlecture/backend/controller/CategoryController.java`
 
 ```java
 package com.newlecture.backend.controller;
@@ -524,7 +594,15 @@ public class CategoryController {
 }
 ```
 
-`@Autowired`는 "이 의존성을 Spring이 자동으로 주입해줘"라는 요청이다. 생성자 매개변수로 `CategoryRepository`(인터페이스)를 받으면, Spring 컨테이너는 그 인터페이스를 구현한 빈(`JdbcCategoryRepository`)을 찾아서 넣어준다 — 컨트롤러는 구현체가 JDBC인지, 나중에 JPA로 바뀌는지 전혀 몰라도 된다. 이게 [[065_스프링의 정체성 — DI 컨테이너, IoC, 인터페이스와 병렬 개발]]에서 다룬 DI/IoC가 실제 코드에 적용된 모습이다.
+**✅ 확인**
+
+- `CategoryController.java` 파일이 `controller` 패키지에 생겼다.
+- `@RestController`와 `@RequestMapping("/api")` 어노테이션이 붙어 있다.
+- `@Autowired`로 `CategoryRepository`를 주입받는다.
+
+**🎓 newlec 쌤의 코멘트**
+
+`@Autowired`는 "이 의존성을 Spring이 자동으로 주입해줘"라고 Spring에게 요청하는 것이다. `CategoryController`의 생성자에 `CategoryRepository`를 넣으면, Spring은 `CategoryRepository`의 구현체(`JdbcCategoryRepository`)를 찾아서 주입한다. 우리가 직접 `new JdbcCategoryRepository()`를 할 필요가 없다. 이것이 DI(의존성 주입)의 핵심이다.
 
 **❌ 자주 하는 실수**
 
@@ -533,9 +611,18 @@ public class CategoryController {
 | `CategoryRepository`가 `null` | `@Autowired` 누락 | 생성자 위에 `@Autowired` 추가 |
 | `JdbcCategoryRepository`가 빈으로 등록되지 않음 | `@Repository` 누락 | `JdbcCategoryRepository`에 `@Repository` 추가 |
 
-## 8. `MenuController` — 쿼리 파라미터로 조건 분기
+**📝 이 단계의 핵심**
 
-`src/main/java/com/newlecture/backend/controller/MenuController.java`
+- `@Autowired`는 Spring이 의존성을 자동으로 주입하게 한다.
+- `@RestController`는 HTTP 요청을 처리하는 컨트롤러다.
+
+## 8. `MenuController` 만들기
+
+`MenuController`를 만들어 `GET /api/menus` 엔드포인트를 구현한다. `@Autowired`로 `MenuRepository`를 주입받는다.
+
+### 8-1. `MenuController` 만들기
+
+파일: `src/main/java/com/newlecture/backend/controller/MenuController.java`
 
 ```java
 package com.newlecture.backend.controller;
@@ -581,22 +668,41 @@ public class MenuController {
 }
 ```
 
-`list` 메서드는 `name`·`category`·`minPrice`+`maxPrice` 중 어떤 파라미터가 들어왔는지에 따라 호출할 `Repository` 메서드를 분기한다. 아무 조건도 없으면 `findAll()`을 호출한다. `@RequestParam(required = false)`가 없으면 해당 파라미터가 없는 요청은 400 오류가 나므로, 옵셔널 파라미터에는 반드시 `required = false`를 붙인다.
+**✅ 확인**
+
+- `MenuController.java` 파일이 `controller` 패키지에 생겼다.
+- `@RestController`와 `@RequestMapping("/api")` 어노테이션이 붙어 있다.
+- `@Autowired`로 `MenuRepository`를 주입받는다.
+
+**🎓 newlec 쌤의 코멘트**
+
+`MenuController`의 `list` 메서드는 `name`, `category`, `minPrice`, `maxPrice` 파라미터를 받아, 어떤 조건으로 데이터를 가져올지 결정한다. `name`이 있으면 `findByName`, `category`가 있으면 `findByCategory`, `minPrice`와 `maxPrice`가 있으면 `findByPriceRange`를 호출한다. 아무 조건도 없으면 `findAll`을 호출한다.
 
 **❌ 자주 하는 실수**
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
-| `category` 파라미터가 요청에 없을 때 오류 | `@RequestParam`의 `required`가 기본값(`true`) | `required = false`로 변경 |
-| `minPrice`/`maxPrice` 둘 중 하나만 왔을 때 예상과 다른 결과 | 두 값이 모두 있어야만 `findByPriceRange` 분기로 들어감 | 조건문(`minPrice != null && maxPrice != null`) 확인 |
+| `category` 파라미터가 `null` | `@RequestParam`의 `required`가 `true` | `required = false`로 변경 |
+| `minPrice`와 `maxPrice`가 `null` | `@RequestParam`의 `required`가 `true` | `required = false`로 변경 |
 
-## 9. 실행과 확인
+**📝 이 단계의 핵심**
+
+- `@RequestParam`의 `required = false`로 옵셔널 파라미터를 만든다.
+- 조건에 따라 다른 Repository 메서드를 호출한다.
+
+## 9. 실행과 테스트
+
+Spring Boot 애플리케이션을 실행하고, API가 제대로 동작하는지 확인한다.
+
+### 9-1. 애플리케이션 실행
 
 ```
 mvn spring-boot:run
 ```
 
-Windows에서는 `mvnw spring-boot:run`을 쓸 수도 있다. `Tomcat started on port(s): 8080`이 뜨면 성공이다.
+Windows에서는 `mvnw spring-boot:run`을 사용할 수도 있다.
+
+### 9-2. API 테스트
 
 ```
 curl http://localhost:8080/api/categories
@@ -605,31 +711,38 @@ curl "http://localhost:8080/api/menus?category=1"
 curl "http://localhost:8080/api/menus?name=라떼"
 ```
 
-- `GET /api/categories`가 카테고리 목록(각 카테고리의 `count` 포함)을 JSON으로 반환한다.
-- `GET /api/menus`가 메뉴 목록(`categoryName`, `favoriteCount` 포함)을 JSON으로 반환한다.
-- `GET /api/menus?category=1`이 해당 카테고리의 메뉴만 반환한다.
-- `GET /api/menus?name=라떼`가 이름에 "라떼"가 포함된 메뉴만 반환한다.
+**✅ 확인**
+
+- `http://localhost:8080/api/categories`가 카테고리 목록을 JSON으로 반환한다.
+- `http://localhost:8080/api/menus`가 메뉴 목록을 JSON으로 반환한다.
+- `http://localhost:8080/api/menus?category=1`이 커피 카테고리만 반환한다.
+- `http://localhost:8080/api/menus?name=라떼`이 "라떼"가 포함된 메뉴만 반환한다.
+
+**🎓 newlec 쌤의 코멘트**
+
+이제 `localhost:8080/api/categories`와 `localhost:8080/api/menus`가 프론트엔드 `MenuCard`가 요구하는 JSON을 반환한다. `CategoryDTO`의 `count` 필드는 각 카테고리의 메뉴 수를, `MenuSummaryDTO`의 `categoryName` 필드는 카테고리 이름을 담고 있다. 이 JSON을 프론트엔드가 받아서 `MenuCard`를 그릴 수 있다.
 
 **❌ 자주 하는 실수**
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
-| `Connection refused` | 애플리케이션이 실행되지 않음 | `mvn spring-boot:run` 실행 여부 확인 |
-| 500 Internal Server Error | 데이터베이스 접속 실패 | `application.properties`의 접속 정보 확인 |
-| 404 Not Found | URL 오탈자 | URL 확인(`/api/categories`, `/api/menus`) |
+| Connection refused | 애플리케이션이 실행되지 않음 | `mvn spring-boot:run` 실행 |
+| 500 Internal Server Error | 데이터베이스 접속 실패 | `application.properties`의 데이터베이스 접속 정보 확인 |
+| 404 Not Found | URL이 잘못됨 | URL 확인 |
 
-## 10. 정리
+**📝 이 단계의 핵심**
 
-| 단계 | 내용 |
-|---|---|
-| 1 | 패키지 구조(`controller`/`entity`/`repository`/`repository.jdbc`/`dto`) 생성, `application.properties` 접속 정보 설정 |
-| 2 | 테이블과 1:1 대응하는 `Category`/`Menu` 엔티티 작성 |
-| 3 | 화면 전용 필드(`count`, `categoryName`, `favoriteCount`)를 담는 `CategoryDTO`/`MenuSummaryDTO` 작성 |
-| 4 | `CategoryRepository`/`MenuRepository` 인터페이스로 "무엇을 할 수 있는지"만 선언 |
-| 5 | `JdbcCategoryRepository` — `LEFT JOIN` + `GROUP BY`로 카테고리별 메뉴 수 집계 |
-| 6 | `JdbcMenuRepository` — `LEFT JOIN`으로 `categoryName`, 서브쿼리로 `favoriteCount` 채우기 |
-| 7 | `CategoryController` — `@Autowired` 생성자 주입으로 `CategoryRepository` 사용 |
-| 8 | `MenuController` — 쿼리 파라미터(`name`/`category`/`minPrice`+`maxPrice`)로 조건 분기 |
-| 9 | `mvn spring-boot:run` 실행, `curl`/Postman으로 API 확인 |
+- `mvn spring-boot:run`으로 애플리케이션을 실행한다.
+- `curl`로 API를 테스트한다.
 
-이번 실습으로 [[031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository]]에서 남겨뒀던 두 가지 임시 처리(엔티티를 그대로 응답으로 반환하던 것, 컨트롤러에서 `DataSource`를 손수 조립하던 것)가 모두 정리됐다. `@Repository`로 등록된 구현체를 `@Autowired`가 자동으로 찾아 주입해주므로, 컨트롤러는 `MenuRepository`·`CategoryRepository`라는 인터페이스만 알면 되고, 실제 구현이 JDBC인지 이후 JPA로 바뀌는지는 전혀 신경 쓸 필요가 없다.
+## 정리
+
+1단계: Spring Boot 프로젝트의 기본 골격을 만들고, 패키지 구조를 정한다.
+2단계: 데이터베이스 테이블과 1:1로 대응하는 엔티티 클래스를 만든다.
+3단계: 화면에 필요한 필드만 골라서 담는 DTO 클래스를 만든다.
+4단계: "무엇을 할 수 있는지"만 정의하는 Repository 인터페이스를 만든다.
+5단계: `JdbcTemplate`으로 `CategoryRepository`를 구현한다.
+6단계: `JdbcTemplate`으로 `MenuRepository`를 구현한다.
+7단계: `@Autowired`로 `CategoryRepository`를 주입받는 `CategoryController`를 만든다.
+8단계: `@Autowired`로 `MenuRepository`를 주입받는 `MenuController`를 만든다.
+9단계: 애플리케이션을 실행하고, API를 테스트한다.
