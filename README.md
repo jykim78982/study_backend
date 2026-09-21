@@ -287,6 +287,8 @@
 - [14_React와_Next.js/실습/027_Next.js 프로젝트 생성 실습](<./14_React와_Next.js/실습/027_Next.js 프로젝트 생성 실습.md>)
 - [14_React와_Next.js/실습/028_Next.js App Router와 공통 레이아웃 실습](<./14_React와_Next.js/실습/028_Next.js App Router와 공통 레이아웃 실습.md>)
 - [14_React와_Next.js/실습/032_Next.js 실무형 메뉴 목록 페이지 만들기 — SSR, 상태, 이벤트, 컴포넌트 분리 실습](<./14_React와_Next.js/실습/032_Next.js 실무형 메뉴 목록 페이지 만들기 — SSR, 상태, 이벤트, 컴포넌트 분리 실습.md>)
+- [14_React와_Next.js/실습/034_Next.js 16 — SSR과 CSR의 상태 관리 비교 실습](<./14_React와_Next.js/실습/034_Next.js 16 — SSR과 CSR의 상태 관리 비교 실습.md>)
+- [14_React와_Next.js/실습/035_Next.js 16 — SSR 컴포넌트 분리 — 데이터 패치 원칙 실습](<./14_React와_Next.js/실습/035_Next.js 16 — SSR 컴포넌트 분리 — 데이터 패치 원칙 실습.md>)
 
 **참고자료**
 
