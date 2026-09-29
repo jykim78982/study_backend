@@ -326,6 +326,7 @@
 - [15_스프링부트/실습/031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository](<./15_스프링부트/실습/031_스프링 부트 백엔드 만들기 — PostgreSQL 연결과 JDBC Repository.md>)
 - [15_스프링부트/실습/033_ncafe 메뉴·카테고리 API 만들기 — DTO와 DI](<./15_스프링부트/실습/033_ncafe 메뉴·카테고리 API 만들기 — DTO와 DI.md>)
 - [15_스프링부트/실습/037_스프링 DI·IoC 기초 — 빌드 도구 없이 JAR 직접 설치로 배우기](<./15_스프링부트/실습/037_스프링 DI·IoC 기초 — 빌드 도구 없이 JAR 직접 설치로 배우기.md>)
+- [15_스프링부트/실습/038_Spring Boot 3계층 실습 — JdbcTemplate로 Menu API 만들기](<./15_스프링부트/실습/038_Spring Boot 3계층 실습 — JdbcTemplate로 Menu API 만들기.md>)
 
 **참고자료**
 
