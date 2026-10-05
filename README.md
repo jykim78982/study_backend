@@ -365,6 +365,7 @@
 
 - [17_Docker와_배포/실습/041_Docker 설치 — WSL Ubuntu 환경 실습](<./17_Docker와_배포/실습/041_Docker 설치 — WSL Ubuntu 환경 실습.md>)
 - [17_Docker와_배포/실습/042_Docker 실습 — 컨테이너 라이프사이클과 내부 구조 탐구](<./17_Docker와_배포/실습/042_Docker 실습 — 컨테이너 라이프사이클과 내부 구조 탐구.md>)
+- [17_Docker와_배포/실습/043_Docker로 팀 공용 PostgreSQL 개발 DB 만들기](<./17_Docker와_배포/실습/043_Docker로 팀 공용 PostgreSQL 개발 DB 만들기.md>)
 
 **참고자료**
 
