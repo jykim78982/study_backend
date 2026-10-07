@@ -39,6 +39,15 @@ public interface MenuRepository extends JpaRepository<Menu, Long> {
 
 > 강의에서는 "Hibernate의 엔티티 매니저가 구현체를 만들어 IoC 컨테이너에 담는다"고 설명했다. 정확히는 **구현체(프록시)를 만들어 빈으로 등록하는 것은 Spring Data JPA**이고, 그 구현체가 내부에서 Hibernate의 `EntityManager`를 사용해 SQL을 실행하는 구조다. 또 리포지토리 빈은 누가 주입받을 때 그때그때 만들어지는 게 아니라, 기본적으로 **애플리케이션이 시작될 때** 미리 만들어져 컨테이너에 등록된다.
 
+**언제, 어떻게 만들어지나**: 애플리케이션이 시작되어 스프링 컨테이너가 초기화될 때, Spring Data JPA는 `Repository`를 상속한 인터페이스들을 찾아낸다. 그리고 인터페이스마다 **JDK 동적 프록시(Dynamic Proxy)**를 만들어 빈으로 등록한다. 동적 프록시는 클래스 파일 없이 **실행 중에 인터페이스만 보고 만들어지는 구현 객체**다. 이 프록시에 메서드 호출이 들어오면 이렇게 나눠 처리한다.
+
+- `save`, `findById` 같은 **기본 메서드** → Spring Data JPA가 미리 만들어둔 기본 구현 클래스(`SimpleJpaRepository`)에 넘긴다.
+- 내가 추가한 **쿼리 메서드** → 시작할 때 메서드 이름을 분석해서 만들어둔 쿼리를 실행한다.
+
+그래서 `@Autowired`나 생성자 주입으로 받는 시점에는 이미 구현체가 컨테이너 안에 준비되어 있고, 우리는 가져다 쓰기만 하면 된다.
+
+> 강의 자료에는 "`@Repository` 어노테이션이 붙은 인터페이스가 등록되면서 발견된다"고 되어 있지만, Spring Data JPA 리포지토리 인터페이스에는 `@Repository`를 **붙이지 않아도 된다.** `JpaRepository`(거슬러 올라가면 `Repository`)를 상속했다는 사실만으로 스캔 대상이 된다. 붙여도 오류는 아니지만 필요는 없다.
+
 ## 2. JpaRepository가 물려받는 것들
 
 `JpaRepository`는 혼자 있는 인터페이스가 아니라 여러 인터페이스를 상속(`extends`)한다. 인터페이스끼리는 `extends` 키워드로 여러 개를 동시에 상속할 수 있고, 상속받은 쪽은 부모들의 기능을 전부 합친 것이 된다.
@@ -61,7 +70,32 @@ JpaRepository  ← 위 계열 + QueryByExampleExecutor + JPA 전용 메서드(fl
 
 **그러면 굳이 MenuRepository를 왜 만드나**: 기본 메서드만으로 충분하다면 `MenuRepository`를 만들지 않고 `JpaRepository<Menu, Long>`이나 그 부모 인터페이스를 그대로 가져다 써도 된다. 그런데도 인터페이스를 따로 선언하는 이유는 **기본 메서드 외에 내 기능을 추가하기 위해서**다. 스프링이 정의해둔 메서드만 구현해주는 게 아니라, 내가 인터페이스에 추가로 선언한 메서드까지 구현해준다.
 
-## 3. 쿼리 메서드 — SQL 대신 메서드 이름을 정의한다
+## 3. 기본 메서드는 어떤 SQL이 되나
+
+`save`, `findAll`, `findById` 같은 기본 메서드를 호출하면 Spring Data JPA는 내부에서 `EntityManager`의 JPA 표준 API를 호출하고, Hibernate가 엔티티 매핑 정보(`@Table`, `@Column` 등)를 보고 SQL을 만든다. `show-sql`을 켜두면 콘솔에서 확인할 수 있다.
+
+```java
+Menu saved = menuRepository.save(new Menu("아메리카노", "Americano", 4500));
+List<Menu> all = menuRepository.findAll();
+Menu found = menuRepository.findById(1L).orElseThrow();
+```
+
+| 호출 | 내부 동작 | 만들어지는 SQL |
+|---|---|---|
+| `save` (id 없음) | `persist` | `insert into menus (eng_name, kor_name, price) values (?, ?, ?)` |
+| `save` (id 있음) | `merge` | `select ... where m1_0.id=?`로 기존 데이터를 읽고, 바뀐 값이 있으면 `update menus set ... where id=?` |
+| `findAll` | 엔티티 전체 조회 | `select m1_0.id, m1_0.eng_name, m1_0.kor_name, m1_0.price from menus m1_0` |
+| `findById` | 기본키로 조회 | `select m1_0.id, ... from menus m1_0 where m1_0.id=?` |
+
+**save가 INSERT와 UPDATE를 가르는 기준**: 넘겨받은 엔티티가 새것인지 판단해서, 새것이면 `persist`(영속성 컨텍스트에 등록 → INSERT), 아니면 `merge`(기존 데이터에 합치기 → UPDATE)를 호출한다. 판단 기준은 기본적으로 id 필드다. `Long`처럼 참조 타입이면 `null`일 때, `long`처럼 기본 타입이면 `0`일 때 새 엔티티로 본다. id 필드를 `long`이 아니라 `Long`으로 선언하는 이유 중 하나다.
+
+> **강의 자료 보충 — INSERT가 나가는 시점**: 자료에는 `persist`가 "플러시 시점에 INSERT SQL을 생성한다"고 되어 있다. 일반적으로는 맞지만 `@GeneratedValue(strategy = GenerationType.IDENTITY)`는 예외다. IDENTITY는 DB가 INSERT를 실행해야 id 값이 정해지기 때문에, Hibernate는 `persist` 하는 **즉시** INSERT를 보낸다. 그래서 `save()`가 돌려준 엔티티에는 이미 id가 채워져 있다.
+
+> **강의 자료 보충 — 별칭 모양**: 자료에 나온 `menu0_` 같은 테이블 별칭은 Hibernate 5 형식이다. Spring Boot 3(Hibernate 6)에서는 `m1_0`처럼 찍힌다. 별칭 모양만 다르고 SQL의 의미는 같다.
+
+이처럼 기본 메서드는 SQL을 직접 쓰지 않아도 엔티티 구조를 보고 SQL을 만든다. 그리고 이름으로 SQL을 만드는 방식은 미리 정의된 메서드에만 해당하지 않는다. 정해진 패턴만 지키면 **내가 지은 메서드 이름으로도** SQL이 만들어진다.
+
+## 4. 쿼리 메서드 — SQL 대신 메서드 이름을 정의한다
 
 그렇다고 아무 이름이나 선언하면 되는 건 아니고, 규칙이 있다. 메서드 이름을 분석해서 SQL을 만들기 때문이다.
 
@@ -87,7 +121,38 @@ List<Menu> findByPriceAndHit(Integer price, Integer hit);       // WHERE price =
 List<Menu> findByKorNameContaining(String keyword);             // WHERE kor_name LIKE %?%
 ```
 
-이렇게 SQL을 대신해서 정의하는 메서드를 **쿼리 메서드**라고 부른다. 쿼리(SQL)를 만들기 위한 메서드라는 뜻이다.
+이렇게 SQL을 대신해서 정의하는 메서드를 **쿼리 메서드**라고 부른다. 쿼리(SQL)를 만들기 위한 메서드라는 뜻이다. 메서드 이름에서 쿼리를 이끌어낸다고 해서 영어로는 **derived query**라고도 한다.
+
+**자주 쓰는 키워드 조합**:
+
+```java
+Menu findFirstByPriceGreaterThan(Integer price);                   // WHERE price > ?  LIMIT 1
+List<Menu> findByPriceBetween(Integer min, Integer max);           // WHERE price BETWEEN ? AND ?
+List<Menu> findByPriceIn(List<Integer> prices);                    // WHERE price IN (?, ?, ...)
+List<Menu> findByPriceNot(Integer price);                          // WHERE price <> ?
+List<Menu> findByKorNameLike(String pattern);                      // WHERE kor_name LIKE ?  (%는 직접 붙여서 넘김)
+List<Menu> findByPriceGreaterThanOrderByPriceDesc(Integer price);  // WHERE price > ? ORDER BY price DESC
+long countByPrice(Integer price);                                  // SELECT COUNT(*) ... WHERE price = ?
+boolean existsByKorName(String korName);                           // 있으면 true
+```
+
+> `First`/`Top`은 같은 뜻이다(`findTop10By...` == `findFirst10By...`). 숫자를 생략하면 1건이다. PostgreSQL + Hibernate 6에서는 콘솔에 `LIMIT` 대신 `fetch first ? rows only`로 찍힐 수 있는데, 같은 의미의 표준 SQL 문법이다.
+
+**메서드 이름의 전체 모양**: 이름은 "무엇을 할지(주어)"와 "어떤 조건으로(술어)"를 `By`를 기준으로 나눠 해석한다.
+
+```
+find     First3     By   KorName Containing  And  Price LessThan   OrderBy Price Desc
+└동작┘   └개수 제한┘ └구분┘ └────────── 조건(WHERE) ──────────────┘  └──── 정렬 ────┘
+```
+
+| 자리 | 들어갈 수 있는 것 |
+|---|---|
+| 동작 | `find`, `read`, `get`, `query`(조회) / `count`(개수) / `exists`(존재 여부) / `delete`, `remove`(삭제) |
+| 수식어 (선택) | `Distinct`, `First`·`Top` + 숫자 |
+| 조건 | 엔티티 필드명 + 연산자 키워드, 여러 개면 `And`·`Or`로 연결 |
+| 정렬 (선택) | `OrderBy` + 필드명 + `Asc`·`Desc` |
+
+**이름 분석은 시작할 때 한다**: 쿼리 메서드 이름은 호출할 때가 아니라 **애플리케이션이 시작되어 프록시를 만들 때** 분석된다. 그래서 필드명 오타나 규칙에 맞지 않는 이름이 있으면 서버가 뜨는 단계에서 바로 에러가 난다(`No property 'korNmae' found for type 'Menu'`). 잘못된 메서드가 숨어 있다가 실행 중에 터지는 일은 없다.
 
 > **강의 내용 바로잡기 — find vs findAll, 그리고 부분 검색**
 > - 강의에서는 "`findBy`는 하나, 여러 개는 `findAllBy`"라고 했지만, Spring Data JPA에서 `findBy`와 `findAllBy`는 **같은 뜻**이다(`All`은 무시된다). 하나를 받을지 여러 개를 받을지는 이름이 아니라 **반환 타입**(`Optional<Menu>` vs `List<Menu>`)이 결정한다.
@@ -99,7 +164,7 @@ List<Menu> findByKorNameContaining(String keyword);             // WHERE kor_nam
 
 **이미 있는 건 정의하지 않는다**: 한 건 조회(`findById`)나 수정(`save`)을 위한 메서드를 `MenuRepository`에 다시 선언할 필요는 없다. 부모 인터페이스인 `CrudRepository`가 이미 정의하고 있기 때문이다. 우리는 거기 없는 것만 추가하면 된다.
 
-## 4. 엔티티 매핑 어노테이션
+## 5. 엔티티 매핑 어노테이션
 
 ```java
 @Entity
@@ -132,13 +197,13 @@ public class Menu {
 
 > **Lombok @Data를 엔티티에 쓸 때 주의**: 강의에서 `@Getter`, `@Setter` 대신 `@Data` 하나로 줄일 수 있다고 했는데, `@Data`는 `equals`, `hashCode`, `toString`까지 만든다. 뒤에서 다룰 **양방향 연관관계**(메뉴 ↔ 카테고리)가 생기면 `toString`이 메뉴 → 카테고리 → 메뉴 목록 → 카테고리…를 끝없이 호출하다 `StackOverflowError`가 난다. 엔티티에는 `@Getter` 정도만 붙이고 `@Data`는 피하는 것이 일반적이다.
 
-## 5. 컨벤션, 기계가 만들어도 지켜야 할까
+## 6. 컨벤션, 기계가 만들어도 지켜야 할까
 
 이제 `CREATE TABLE`은 엔티티 설정으로 끝나고, SELECT·INSERT·UPDATE는 쿼리 메서드로 끝난다. 사람이 DB 테이블이나 컬럼을 직접 손댈 일이 사라지고 있다. 그러면 "사람이 보기 좋으라고 만든" 명명 컨벤션을 굳이 지켜야 하는가라는 질문이 생긴다. 사람이 손대지도 않고 들여다볼 일도 없다면, 오히려 사람이 개입하지 않는 쪽이 맞지 않느냐는 것이다.
 
 결론은 **지키는 것이 맞다.** 아무리 기계가 만든 결과물이라도 그 결과물을 **내가 확인할 수 있어야** 하기 때문이다. 직접 작성하지 않아도 내가 볼 것이므로, 잘 볼 수 있게 만들어둬야 한다. 다만 컨벤션을 안 지키는 사람에게 그걸 강요할 명분은 점점 약해지고 있다. 그래서 더더욱 대충 넘기지 말고 꼼꼼히 정해두는 습관이 필요하다.
 
-## 6. 연관관계 — JOIN을 객체로 표현한다
+## 7. 연관관계 — JOIN을 객체로 표현한다
 
 DB는 정규화로 **중복을 제거**해서, 화면에 보여줄 데이터가 여러 테이블에 흩어져 있다. 메뉴 관리 화면만 해도 메뉴 테이블에 없는 카테고리 이름이 필요하다. SQL에서는 이걸 JOIN으로 가져왔는데, JPA는 이 관계를 **엔티티 간의 관계**로 표현한다.
 
@@ -198,7 +263,7 @@ public class Category {             // 부모 (1쪽)
 
 > 강의에서는 LAZY가 기본 옵션이라고 했지만, 기본값은 관계 종류마다 다르다. **`@OneToMany`는 기본이 LAZY지만, `@ManyToOne`은 기본이 EAGER**다. 그래서 위 코드처럼 `@ManyToOne(fetch = FetchType.LAZY)`를 **직접 적어줘야** 의도대로 동작한다.
 
-## 7. 복합키 — 기본키가 두 개 이상일 때
+## 8. 복합키 — 기본키가 두 개 이상일 때
 
 2차 정규화를 다룰 때 "부분 함수 종속"이 나왔던 이유는, 키가 여러 컬럼으로 이루어진 **복합키**가 있기 때문이다. ncafe에서 회원과 메뉴 사이의 **좋아요, 추천, 주문**은 모두 다대다 관계다. 한 회원이 여러 메뉴를 좋아할 수 있고, 한 메뉴를 여러 회원이 좋아할 수 있다. 부모가 양쪽(회원, 메뉴)에 있는 셈이다.
 
@@ -255,7 +320,7 @@ public class Like {
 
 주문은 보통 "주문(언제, 누가)"과 "주문 항목(어떤 메뉴를 몇 개)"으로 테이블을 나누고, 둘 다 자체 id를 갖게 설계한다. 복합키는 **"조합 자체가 곧 유일한 식별자"**인 경우에만 쓴다.
 
-## 8. 쿼리 메서드로 감당이 안 될 때 — JPQL, Criteria API, Querydsl
+## 9. 쿼리 메서드로 감당이 안 될 때 — JPQL, Criteria API, Querydsl
 
 어떤 주인공(예: 메뉴)을 가진 페이지는 보통 **목록, 상세, 등록, 수정, 삭제(확인)** 다섯 개 정도다. 이 중 상세·등록·수정·삭제는 복잡하지 않다. 정말 복잡해지는 건 **목록**이다. 쇼핑몰 목록 화면을 떠올리면 검색 기준이 매우 많다. 그러다 보면 SELECT 절에 `FROM`의 테이블과 상관없는 값이 서브쿼리로 들어가고, `FROM` 절에 JOIN이 여러 개 붙고, `WHERE` 절도 복잡해진다.
 
