@@ -336,6 +336,8 @@
 - [15_스프링부트/실습/037_스프링 DI·IoC 기초 — 빌드 도구 없이 JAR 직접 설치로 배우기](<./15_스프링부트/실습/037_스프링 DI·IoC 기초 — 빌드 도구 없이 JAR 직접 설치로 배우기.md>)
 - [15_스프링부트/실습/038_Spring Boot 3계층 실습 — JdbcTemplate로 Menu API 만들기](<./15_스프링부트/실습/038_Spring Boot 3계층 실습 — JdbcTemplate로 Menu API 만들기.md>)
 - [15_스프링부트/실습/040_Spring Boot REST API — 관리자 메뉴 CRUD 컨트롤러 만들기](<./15_스프링부트/실습/040_Spring Boot REST API — 관리자 메뉴 CRUD 컨트롤러 만들기.md>)
+- [15_스프링부트/실습/044_JPA 추가하기 — MenuRepository로 첫 API 만들기](<./15_스프링부트/실습/044_JPA 추가하기 — MenuRepository로 첫 API 만들기.md>)
+- [15_스프링부트/실습/045_JPA 기본 메서드 실습 — Postman으로 CRUD 완성하기](<./15_스프링부트/실습/045_JPA 기본 메서드 실습 — Postman으로 CRUD 완성하기.md>)
 
 **참고자료**
 
