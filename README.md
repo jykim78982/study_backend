@@ -342,6 +342,7 @@
 - [15_스프링부트/실습/038_Spring Boot 3계층 실습 — JdbcTemplate로 Menu API 만들기](<./15_스프링부트/실습/038_Spring Boot 3계층 실습 — JdbcTemplate로 Menu API 만들기.md>)
 - [15_스프링부트/실습/040_Spring Boot REST API — 관리자 메뉴 CRUD 컨트롤러 만들기](<./15_스프링부트/실습/040_Spring Boot REST API — 관리자 메뉴 CRUD 컨트롤러 만들기.md>)
 - [15_스프링부트/실습/047_트랜잭션 롤백 실습 — 개인 DB와 JUnit 테스트로 @Transactional 확인하기](<./15_스프링부트/실습/047_트랜잭션 롤백 실습 — 개인 DB와 JUnit 테스트로 @Transactional 확인하기.md>)
+- [15_스프링부트/실습/048_JPA 트랜잭션 실습 — 커밋과 롤백을 테스트로 확인하기](<./15_스프링부트/실습/048_JPA 트랜잭션 실습 — 커밋과 롤백을 테스트로 확인하기.md>)
 
 **참고자료**
 
