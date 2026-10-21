@@ -2,7 +2,7 @@
 tags: [스프링부트, 설정, YAML, Gradle, Kotlin]
 ---
 
-> 🔗 관련 노트: [[080_Spring Data JPA 리포지토리와 엔티티 매핑 — 쿼리 메서드, 연관관계, 복합키]]
+> 🔗 관련 노트: [[079_Spring Data JPA 리포지토리와 엔티티 매핑 — 쿼리 메서드, 연관관계, 복합키]]
 
 # 스프링 부트 설정 파일 — application.yml과 Gradle Kotlin DSL
 

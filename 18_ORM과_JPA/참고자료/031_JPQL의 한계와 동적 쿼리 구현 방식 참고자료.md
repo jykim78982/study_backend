@@ -2,7 +2,7 @@
 tags: [JPA, SpringDataJPA, JPQL, 동적쿼리, EntityManager, CustomRepository, 참고자료]
 ---
 
-> 🔗 관련 노트: [[082_JPQL과 @Query — 쿼리 메서드 이름 대신 쿼리를 직접 쓰기]] · [[025_JPQL — 쿼리 메서드의 한계를 해결하기 위한 쿼리 언어 참고자료]] · [[080_Spring Data JPA 리포지토리와 엔티티 매핑 — 쿼리 메서드, 연관관계, 복합키]] · [[024_Spring Data JPA 쿼리 메서드 — 이름 규칙과 연산자 키워드 참고자료]]
+> 🔗 관련 노트: [[081_JPQL과 @Query — 쿼리 메서드 이름 대신 쿼리를 직접 쓰기]] · [[025_JPQL — 쿼리 메서드의 한계를 해결하기 위한 쿼리 언어 참고자료]] · [[079_Spring Data JPA 리포지토리와 엔티티 매핑 — 쿼리 메서드, 연관관계, 복합키]] · [[024_Spring Data JPA 쿼리 메서드 — 이름 규칙과 연산자 키워드 참고자료]]
 
 # JPQL의 한계와 동적 쿼리 구현 방식
 

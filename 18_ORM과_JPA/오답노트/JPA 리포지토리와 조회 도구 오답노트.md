@@ -95,4 +95,4 @@ List<Menu> result = queryFactory
 
 tags: #JPA #SpringDataJPA #QueryDSL #쿼리메서드 #복합키
 
-> 🔗 관련 노트: [[080_Spring Data JPA 리포지토리와 엔티티 매핑 — 쿼리 메서드, 연관관계, 복합키]] · [[081_JPA 연관관계 매핑과 쿼리 메서드 조인 — 1대N, 1대1, 복합키]] · [[045_JPA 기본 메서드 실습 — Postman으로 CRUD 완성하기]]
+> 🔗 관련 노트: [[079_Spring Data JPA 리포지토리와 엔티티 매핑 — 쿼리 메서드, 연관관계, 복합키]] · [[080_JPA 연관관계 매핑과 쿼리 메서드 조인 — 1대N, 1대1, 복합키]] · [[045_JPA 기본 메서드 실습 — Postman으로 CRUD 완성하기]]

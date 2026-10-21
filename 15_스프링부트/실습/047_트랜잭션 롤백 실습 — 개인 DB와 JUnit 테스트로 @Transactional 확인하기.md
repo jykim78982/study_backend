@@ -2,7 +2,7 @@
 tags: [스프링부트, 트랜잭션, Transactional, JUnit, SpringBootTest, PostgreSQL, 실습]
 ---
 
-> 🔗 관련 노트: [[088_트랜잭션 — 논리적 작업 단위와 @Transactional 롤백 원리]] · [[084_트랜잭션 — 작업 단위, ACID, 그리고 스프링 @Transactional이 필요한 이유]] · [[046_PostgreSQL 제약조건 실습 — NOT NULL, DEFAULT, CHECK, PK, FK]]
+> 🔗 관련 노트: [[085_트랜잭션 — 논리적 작업 단위와 @Transactional 롤백 원리]] · [[083_트랜잭션 — 작업 단위, ACID, 그리고 스프링 @Transactional이 필요한 이유]] · [[046_PostgreSQL 제약조건 실습 — NOT NULL, DEFAULT, CHECK, PK, FK]]
 
 # 트랜잭션 롤백 실습 — 개인 DB와 JUnit 테스트로 @Transactional 확인하기
 
@@ -75,7 +75,7 @@ spring:
 
 > **`application.properties`는 지워야 하나?** 지우지 않아도 된다. 두 파일이 모두 있으면 **둘 다 적용**된다. 다만 같은 설정 키가 양쪽에 있으면 **`.properties` 쪽 값이 우선**한다. 실수로 서로 다른 값을 넣어 헷갈릴 염려가 있다면 지우는 것이 깔끔하다.
 
-`ddl-auto` 각 값의 의미는 [[088_트랜잭션 — 논리적 작업 단위와 @Transactional 롤백 원리]]에 정리했다. 이 실습에서는 6단계에서 값을 바꿔 가며 직접 결과를 확인한다.
+`ddl-auto` 각 값의 의미는 [[085_트랜잭션 — 논리적 작업 단위와 @Transactional 롤백 원리]]에 정리했다. 이 실습에서는 6단계에서 값을 바꿔 가며 직접 결과를 확인한다.
 
 ## 4. 엔티티 · 리포지토리 · 서비스 만들기
 
