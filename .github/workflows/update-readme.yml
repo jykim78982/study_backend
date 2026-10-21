@@ -54,6 +54,27 @@ jobs:
               echo "</details>"
               echo
             done
+            # 번호 없는 기타 폴더 (파일에도 번호가 없으므로 *.md 전체를 나열)
+            if [ -d "기타" ]; then
+              echo "<details>"
+              echo "<summary>기타</summary>"
+              echo
+              echo "\`기타/\`"
+              for sub in 노트 실습 참고자료; do
+                [ -d "기타/${sub}" ] || continue
+                files=("기타/${sub}"/*.md)
+                [ -e "${files[0]}" ] || continue
+                echo
+                echo "**${sub}**"
+                echo
+                for f in "${files[@]}"; do
+                  echo "- [${f%.md}](<./$f>)"
+                done
+              done
+              echo
+              echo "</details>"
+              echo
+            fi
           } > README.md
 
       - name: Commit README if changed
