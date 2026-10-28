@@ -1,12 +1,12 @@
 ---
-tags: [스프링부트, 스프링시큐리티, JWT, JJWT, ConfigurationProperties, JwtProvider, OncePerRequestFilter, SecurityContextHolder, Bearer, SecurityConfig, SessionCreationPolicy, CSRF, 실습]
+tags: [스프링부트, 스프링시큐리티, JWT, JJWT, ConfigurationProperties, JwtProvider, OncePerRequestFilter, SecurityContextHolder, Bearer, SecurityConfig, SessionCreationPolicy, CSRF, AuthenticationManager, 로그인API, Postman, 실습]
 ---
 
 > 🔗 관련 노트: [[099_인증 방식의 변화와 JWT — 세션에서 토큰으로, SAML·OAuth 2.0·BFF]] · [[098_스프링 시큐리티 인가 설정 — URL별 허용 규칙, 역할, 커스텀 로그인 페이지]] · [[093_서블릿 필터와 스프링 시큐리티 입문 — 필터 체인, @Bean, UserDetailsService]]
 
-# 스프링 부트 JWT 인증 구현 — JJWT 설정, JwtProvider, JwtAuthenticationFilter, SecurityConfig
+# 스프링 부트 JWT 인증 구현 — JJWT 설정, JwtProvider, JwtAuthenticationFilter, SecurityConfig, 로그인 API
 
-풀스택 환경에서 토큰 기반 인증을 쓰기로 했다면, 백엔드 서버가 토큰을 **발급**하고 **검증**할 수 있어야 한다. 이 실습은 네 단계로 진행한다.
+풀스택 환경에서 토큰 기반 인증을 쓰기로 했다면, 백엔드 서버가 토큰을 **발급**하고 **검증**할 수 있어야 한다. 이 실습은 다섯 단계로 진행한다.
 
 | 단계 | 만드는 것 | 비유 |
 |---|---|---|
@@ -14,6 +14,7 @@ tags: [스프링부트, 스프링시큐리티, JWT, JJWT, ConfigurationPropertie
 | 2부 | `JwtProvider` (토큰 발급, 검증, 정보 추출) | 토큰을 찍어내고 검사하는 **기계** |
 | 3부 | `JwtAuthenticationFilter` (요청마다 토큰 검사 → 로그인 상태로 등록) | 출입구의 **보안 요원** |
 | 4부 | `SecurityConfig` (필터 등록, 세션·CSRF 끄기, 경로별 권한) | 보안 요원을 출입구에 세우는 **제어실** |
+| 5부 | `AuthController`, `AuthService` (로그인 → 토큰 발급) + Postman 테스트 | 출입증을 나눠 주는 **창구** |
 
 > **추가 설명 — 수업 프로젝트(ncafe)와 다른 점**: ncafe 스타터 백엔드는 JJWT 대신 스프링 시큐리티의 **OAuth2 Resource Server** 모듈(`spring-boot-starter-oauth2-resource-server`)을 쓴다. 그 모듈이 `JwtEncoder`/`JwtDecoder`와 토큰 검사 필터를 이미 갖고 있어서, `SecurityConfig`에 `.oauth2ResourceServer(o -> o.jwt(...))` 한 줄로 3부의 필터를 대신한다. 이 실습은 그 안에서 일어나는 일을 **JJWT로 직접 만들어 보는** 과정이다. 두 방식 모두 많이 쓰인다.
 
@@ -808,21 +809,546 @@ public class SecurityConfig {
 
 이제 스프링 시큐리티는 서버로 들어오는 모든 요청에 대해 `JwtAuthenticationFilter`를 먼저 거치게 동작한다. 토큰이 유효하면 로그인 처리까지 자동으로 끝난다.
 
----
+### 5. 4부 마무리
 
-## 마무리
-
-이 실습에서는 JWT 인증 환경을 만들기 위해 `JwtAuthenticationFilter`를 작성하고, `SecurityConfig`로 스프링 시큐리티 체인에 이 커스텀 필터를 등록, 배치했다. 이로써 HTTP 요청이 컨트롤러에 닿기 전에 요청 헤더의 JWT 유효성을 가장 먼저 검증하고, 스프링 시큐리티의 `SecurityContext`에 인증 객체를 저장하는 기초 보안 구조가 완성되었다.
+4부에서는 `JwtAuthenticationFilter`를 `SecurityConfig`로 스프링 시큐리티 체인에 등록, 배치했다. 이로써 HTTP 요청이 컨트롤러에 닿기 전에 요청 헤더의 JWT 유효성을 가장 먼저 검증하고, 스프링 시큐리티의 `SecurityContext`에 인증 객체를 저장하는 기초 보안 구조가 완성되었다.
 
 ```
 요청 ─▶ JwtAuthenticationFilter ─▶ (UsernamePasswordAuthenticationFilter 자리) ─▶ AuthorizationFilter ─▶ 컨트롤러
           토큰 검증 → SecurityContext 등록                                         permitAll / authenticated 판단
 ```
 
-토큰을 검증하고 통과시키는 입구는 마련되었으므로, 다음 작업이 남는다.
+토큰을 검증하고 통과시키는 입구는 마련되었지만, 토큰을 **발급하는** 창구가 아직 없다. 5부에서 로그인 API를 만든다.
 
-| 남은 작업 | 내용 |
+---
+
+## 5부. 로그인 요청을 처리하고 JWT 토큰을 발급하는 AuthController와 AuthService 구현
+
+### 1. 로그인 요청을 처리하는 컨트롤러와 서비스의 역할
+
+4부까지 건물 출입구를 지키는 보안 요원(`JwtAuthenticationFilter`)과 제어실(`SecurityConfig`) 설정을 마쳤다. 보안 요원은 손님이 들고 온 출입증(JWT)을 **검사**만 한다. 아직 출입증을 **발급**해 주는 창구가 없다.
+
+손님이 처음 와서 아이디와 비밀번호를 내면, 진짜 회원인지 확인하고 새 출입증을 나눠 주는 전담 창구가 필요하다. 백엔드에서 이 창구가 **로그인 API**다.
+
+```
+① 손님의 요청        사용자가 화면에서 아이디/비밀번호를 입력하고 로그인 버튼을 누른다
+        │
+        ▼
+② 창구 접수          AuthController가 요청 데이터를 받아 서비스로 넘긴다
+        │
+        ▼
+③ 신원 확인·발행     AuthService가 AuthenticationManager로 아이디/비밀번호를 확인하고,
+        │            통과하면 JwtProvider로 새 JWT를 만든다
+        ▼
+④ 응답 전달          만든 토큰을 DTO에 담아 사용자에게 돌려준다
+```
+
+### 2. 로그인 DTO와 토큰 응답 객체 만들기
+
+사용자가 보내는 로그인 정보와, 서버가 돌려줄 토큰 정보를 담을 데이터 상자(DTO) 두 개를 만든다. 둘 다 `dto/auth` 패키지에 둔다.
+
+**1) 로그인 요청 데이터 상자 (LoginRequest)**
+
+사용자가 보낸 아이디와 비밀번호를 담는다.
+
+```java
+package com.ncafe.backend.dto.auth;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+public class LoginRequest {
+    private String username;
+    private String password;
+}
+```
+
+**2) 토큰 응답 데이터 상자 (LoginResponse)**
+
+로그인에 성공하면 돌려줄 토큰과 토큰 종류(`Bearer`)를 담는다.
+
+```java
+package com.ncafe.backend.dto.auth;
+
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+public class LoginResponse {
+    private String accessToken;
+    private String tokenType;
+}
+```
+
+> 원문 바로잡기 — 원문의 `LoginResponse`는 `@Data @NoArgsConstructor`만 붙이고, 서비스에서는 `new LoginResponse(token)`으로 만들었다. 매개변수가 하나인 생성자가 없으므로 **컴파일 오류**가 난다. 또 `tokenType`도 채워지지 않는다. 수업 코드처럼 `@Builder`를 붙이고 `LoginResponse.builder().accessToken(token).tokenType("Bearer").build()`로 만든다. `@Builder`만 붙이면 기본 생성자가 없어지는데, 응답 DTO는 JSON으로 **내보내기만** 하므로 문제없다(요청 DTO인 `LoginRequest`는 JSON을 객체로 만들 때 기본 생성자가 필요해서 `@NoArgsConstructor`를 붙였다).
+
+### 3. AuthenticationManager를 활용한 AuthService 로그인 로직 작성
+
+아이디/비밀번호 검증은 직접 DB를 조회해 비교해도 되지만, 스프링 시큐리티가 제공하는 `AuthenticationManager`를 쓰면 안전하고 편하게 검증할 수 있다.
+
+`AuthenticationManager`는 스프링 시큐리티가 인증할 때 내부적으로 쓰는 **인증 관리자**다. 안에서 `UserDetailsService`를 불러 저장된 사용자의 암호화된 비밀번호와 권한을 조회하고, 주입된 `PasswordEncoder`(예: `BCryptPasswordEncoder`)로 사용자가 입력한 평문 비밀번호와 저장된 해시를 비교한다. 즉 스프링 보안의 기본 인증 흐름을 그대로 구현하고 있다. 비밀번호가 맞으면 인증된 사용자 정보와 권한 목록을 담은 `Authentication` 객체를 만들어 돌려준다.
+
+```
+1. SecurityConfig 설정 및 빈 등록                     2. 만들어진 AuthenticationManager의 구성 (예시)
+
+ SecurityConfig.java                                   ┌─ AuthenticationManager ─────────────────────┐
+ ① @Bean ──────── 설정 클래스에서 빈 정의               │                                              │
+ ② public AuthenticationManager authenticationManager( │  UserDetailsService  ── 사용자 정보 조회        │
+        AuthenticationConfiguration config) ── 구성 주입│       (유저 데이터베이스)                      │
+ ③ return config.getAuthenticationManager();           │                                              │
+        └─ AuthenticationManager 반환 및 빈 등록         │  PasswordEncoder     ── 비밀번호 검증          │
+                                                       │       (해시 함수, 예: BCrypt)  "자동으로 비교!" │
+                                                       └──────────────────────────────────────────────┘
+```
+
+> 원문 바로잡기 — 원문은 `AuthenticationManager`를 "클래스"라고 하고, "인증이 완료되면 `JwtProvider`를 호출해 토큰을 발급해 주는 일까지 처리한다"고 했다. 두 가지를 고친다.
+> - `AuthenticationManager`는 **인터페이스**다. 실제로 일하는 구현체는 `ProviderManager`이고, 그 안의 `DaoAuthenticationProvider`가 `UserDetailsService`와 `PasswordEncoder`로 비교를 한다.
+> - 매니저는 JWT를 전혀 모른다. 인증된 `Authentication`을 **돌려주는 데서 끝**이고, 그것으로 `JwtProvider`를 불러 토큰을 만드는 것은 아래 **`AuthService`의 일**이다.
+
+이 객체를 쓰려면 `SecurityConfig`에 `AuthenticationManager`를 빈으로 등록하는 코드만 추가하면 된다(호출은 `AuthService`에서 한다).
+
+```java
+// SecurityConfig.java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    // ... 기존 설정 생략 ...
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+}
+```
+
+> **추가 설명 — 이 빈이 없으면 서버가 뜨지 않는다**: 스프링 부트는 `AuthenticationManager`를 빈으로 **자동 등록해 주지 않는다**. 이 메서드 없이 `AuthService`가 생성자로 매니저를 받으려 하면 서버 시작 시 `NoSuchBeanDefinitionException`이 난다. 수업 중 작성한 코드도 처음엔 이 빈이 빠져 있었다. `AuthenticationConfiguration`이 내부에 만들어 둔 매니저는 6절에서 등록할 `UserDetailsService`와 `PasswordEncoder` 빈을 **자동으로 찾아 연결**한다.
+
+이제 로그인 핵심 로직을 맡는 `AuthService`를 작성한다.
+
+```java
+package com.ncafe.backend.service;
+
+import com.ncafe.backend.dto.auth.LoginRequest;
+import com.ncafe.backend.dto.auth.LoginResponse;
+import com.ncafe.backend.security.jwt.JwtProvider;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.stereotype.Service;
+
+@Service
+public class AuthService {
+
+    private final AuthenticationManager authenticationManager;
+    private final JwtProvider jwtProvider;
+
+    public AuthService(AuthenticationManager authenticationManager, JwtProvider jwtProvider) {
+        this.authenticationManager = authenticationManager;
+        this.jwtProvider = jwtProvider;
+    }
+
+    public LoginResponse login(LoginRequest request) {
+        // 1. 아이디와 비밀번호로 아직 인증되지 않은 토큰 객체를 만든다.
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword());
+
+        // 2. AuthenticationManager에게 검증을 맡긴다. (비밀번호 일치 여부 등 확인)
+        Authentication authentication = authenticationManager.authenticate(authenticationToken);
+
+        // 3. 검증된 인증 객체에서 사용자 아이디와 권한을 꺼낸다.
+        String username = authentication.getName();
+        String role = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("ROLE_USER");
+
+        // 4. 토큰 발행 기계(JwtProvider)를 통해 JWT 토큰을 생성한다.
+        String token = jwtProvider.createAccessToken(username, role);
+
+        // 5. 생성된 토큰을 응답 DTO에 담아서 반환한다.
+        return LoginResponse.builder()
+                .accessToken(token)
+                .tokenType("Bearer")
+                .build();
+    }
+}
+```
+
+> 원문 바로잡기 — 원문은 DTO를 `com.ncafe.backend.dto.LoginRequest`로 import했지만, 2절에서 DTO를 `dto.auth` 패키지에 만들었으므로 `com.ncafe.backend.dto.auth.LoginRequest`가 맞다(컨트롤러도 같다). 5번 반환문은 2절 바로잡기대로 빌더로 고쳤다.
+
+| 단계 | 하는 일 |
 |---|---|
-| 인증 Controller 및 Service 구현 | 로그인 요청이 오면 사용자 정보를 확인하고, 검증된 사용자에게 Access Token과 Refresh Token을 만들어 발급하는 API |
-| Refresh Token을 활용한 재발급 및 만료 처리 | Access Token이 만료되면 안전하게 토큰을 갱신하는 로직, 로그아웃과 토큰 무효화 처리 |
-| 예외 처리 (Exception Handling) | 잘못되었거나 만료된 토큰으로 접근하면 스프링 시큐리티 단에서 `401 Unauthorized` 같은 커스텀 JSON 응답을 주도록 `AuthenticationEntryPoint`와 `AccessDeniedHandler` 설정 |
+| 1 | 2인자 생성자 `UsernamePasswordAuthenticationToken(아이디, 비밀번호)` → **아직 인증 전** 상태의 그릇 |
+| 2 | `authenticate()` → 성공하면 **인증 완료된** `Authentication` 반환, 실패하면 예외 |
+| 3 | `getName()`으로 아이디, 권한 목록의 첫 번째로 역할(없으면 `ROLE_USER`) |
+| 4 | 2부의 `createAccessToken()`으로 JWT 발급 |
+| 5 | `accessToken`과 `tokenType: "Bearer"`를 담아 반환 |
+
+> **추가 설명 — 로그인할 때는 `SecurityContextHolder`에 담지 않는다**: `authenticate()`는 인증 객체를 **돌려줄 뿐** 홀더에 담지 않고, 여기서도 담을 필요가 없다. 결과를 JWT로 만들어 돌려주면 끝이고, 다음 요청부터는 3부의 필터가 토큰을 보고 매번 홀더를 채운다.
+
+> **추가 설명 — 역할이 여러 개인 사용자**: `findFirst()`라서 역할이 여럿이어도 **하나만** 토큰에 들어간다. 6절의 `admin`처럼 `USER`, `ADMIN`을 함께 가지면, `User`가 권한을 이름순으로 정렬해 두므로 `ROLE_ADMIN`이 들어간다. 지금 테스트에는 문제없지만 순서에 기대는 코드이므로, 역할이 여럿일 수 있다면 클레임을 목록으로 바꾸는 것이 안전하다.
+
+### 4. AuthController 구현과 로그인 API 엔드포인트 개방
+
+외부의 HTTP 요청을 받아 서비스를 호출하는 컨트롤러를 만든다. 경로는 4부 `SecurityConfig`에서 `permitAll()`로 열어 둔 `/api/auth/login`이다.
+
+```java
+package com.ncafe.backend.controller;
+
+import com.ncafe.backend.dto.auth.LoginRequest;
+import com.ncafe.backend.dto.auth.LoginResponse;
+import com.ncafe.backend.service.AuthService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+
+    private final AuthService authService;
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+        LoginResponse tokenResponse = authService.login(loginRequest);
+        return ResponseEntity.ok(tokenResponse);
+    }
+}
+```
+
+이제 사용자가 `/api/auth/login`으로 아이디와 비밀번호를 담아 POST 요청을 보내면, 서비스가 신원을 확인한 뒤 JWT를 담은 JSON을 돌려준다.
+
+> **추가 설명 — 수업 코드는 `ResponseEntity`를 뺐다**: `ResponseEntity.ok(...)`는 200이고, 감싸지 않아도 기본 응답이 200이다. 수업에서는 "안 써도 되면 안 쓴다"는 기준으로 아래처럼 DTO를 그대로 반환했다. 둘 다 결과는 같다. 실패는 이 `return`이 아니라 예외 처리 흐름이 응답한다.
+>
+> ```java
+> @PostMapping("/login")
+> public LoginResponse login(@RequestBody LoginRequest loginRequest) {
+>     return authService.login(loginRequest);
+> }
+> ```
+
+### 5. 4부 SecurityConfig에 관리자 경로 규칙 추가
+
+7절에서 만들 `/api/admin/menus`를 관리자만 들어가게 하려면, 4부의 경로 규칙에 **관리자 줄을 추가**해야 한다.
+
+```java
+.authorizeHttpRequests(auth -> auth
+    // 로그인, 회원가입 등 공개 API와 에러 경로는 토큰 없이도 접근 허용
+    .requestMatchers("/api/auth/**", "/error").permitAll()
+    // 관리자만 접근 가능
+    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+    // 그 외의 모든 요청은 인증된 사용자만 접근 가능
+    .anyRequest().authenticated()
+)
+```
+
+> 원문 바로잡기 — 원문은 "`/api/admin/menus`는 `SecurityConfig` 설정에 의해 ADMIN만 접근할 수 있다"고 했지만, 4부의 `SecurityConfig`에는 `/api/auth/**`와 `anyRequest().authenticated()`만 있고 **관리자 규칙이 없다**. 그대로 두면 USER 토큰으로도 관리자 메뉴가 열린다. 수업 코드처럼 `hasRole("ADMIN")` 줄을 넣어야 한다. `/error`도 함께 열어 두었다(4부 4절 추가 설명). 규칙은 위에서부터 처음 맞는 것 하나만 적용되므로 `anyRequest()`보다 **앞에** 쓴다.
+
+### 6. 임시 사용자(In-Memory User) 설정을 통한 로그인 로직 테스트
+
+사용자 정보를 관리하는 전담 서비스나 DB 회원 데이터가 없어도, 테스트용 **임시 사용자**를 시큐리티 설정에 등록하면 지금 만든 로그인 로직을 그대로 테스트할 수 있다. 권한별 동작을 확인하려면 일반 사용자(USER)와 관리자(ADMIN)처럼 역할이 다른 사용자를 함께 등록해 두면 좋다.
+
+`SecurityConfig`에 `UserDetailsService` 빈을 임시로 추가하면, `AuthenticationManager`가 이 회원 정보를 보고 로그인을 검증한다.
+
+```java
+// SecurityConfig.java (추가 import)
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+
+    // ... 기존 설정 생략 ...
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
+        UserDetails user = User.builder()
+                .username("jykim")
+                .password(passwordEncoder.encode("123"))
+                .roles("USER")
+                .build();
+
+        UserDetails admin = User.builder()
+                .username("admin")
+                .password(passwordEncoder.encode("123"))
+                .roles("USER", "ADMIN")
+                .build();
+
+        return new InMemoryUserDetailsManager(user, admin);
+    }
+```
+
+이렇게 설정한 뒤 `/api/auth/login`으로 `jykim / 123` 또는 `admin / 123`을 담아 POST 요청을 보내면, DB 연결 없이도 권한별로 JWT가 발급되는지 확인할 수 있다.
+
+> **추가 설명 — 원문과 수업 코드의 차이**: 원문은 일반 사용자를 `newlec`, 관리자를 `roles("ADMIN")` 하나만으로 등록했고, 수업 코드는 `jykim`과 `roles("USER", "ADMIN")`을 썼다(관리자는 일반 사용자 역할도 한다). 원문은 `BCryptPasswordEncoder` import도 빠져 있다. `.roles("USER")`는 자동으로 `ROLE_` 접두사를 붙여 `ROLE_USER` 권한이 되므로, 토큰에도 `ROLE_USER`가 들어가고 3부의 필터와 `hasRole("ADMIN")`이 그대로 맞물린다.
+
+> **추가 설명 — 지금까지의 SecurityConfig 전체**: 4부 설정에 5절의 관리자 규칙, 3절의 `AuthenticationManager` 빈, 6절의 두 빈을 합친 최종 모습이다.
+>
+> ```java
+> @Configuration
+> @EnableWebSecurity
+> public class SecurityConfig {
+>
+>     private final JwtProvider jwtProvider;
+>
+>     public SecurityConfig(JwtProvider jwtProvider) {
+>         this.jwtProvider = jwtProvider;
+>     }
+>
+>     @Bean
+>     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+>         http
+>             .csrf(AbstractHttpConfigurer::disable)
+>             .sessionManagement(session ->
+>                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+>             )
+>             .authorizeHttpRequests(auth -> auth
+>                 .requestMatchers("/api/auth/**", "/error").permitAll()
+>                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+>                 .anyRequest().authenticated()
+>             )
+>             .addFilterBefore(
+>                 new JwtAuthenticationFilter(jwtProvider),
+>                 UsernamePasswordAuthenticationFilter.class
+>             );
+>
+>         return http.build();
+>     }
+>
+>     @Bean
+>     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+>         return authenticationConfiguration.getAuthenticationManager();
+>     }
+>
+>     @Bean
+>     public PasswordEncoder passwordEncoder() {
+>         return new BCryptPasswordEncoder();
+>     }
+>
+>     @Bean
+>     public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
+>         // jykim(USER), admin(USER, ADMIN) — 6절 코드와 같다
+>     }
+> }
+> ```
+
+### 7. 권한을 테스트하기 위한 엔드포인트 컨트롤러 추가하기
+
+발급된 JWT의 역할에 따라 API 접근이 제대로 제어되는지 확인하려고 테스트용 엔드포인트를 만든다. `com.ncafe.backend.controller` 패키지에 `MenuController`를 만든다.
+
+```java
+package com.ncafe.backend.controller;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api")
+public class MenuController {
+
+    // 모든 사용자(인증된 사용자)가 접근 가능한 메뉴 목록 조회
+    @GetMapping("/menus")
+    public ResponseEntity<List<String>> getMenuList() {
+        List<String> menus = List.of("아메리카노", "카페라떼", "바닐라라떼");
+        return ResponseEntity.ok(menus);
+    }
+
+    // 관리자(ADMIN) 권한을 가진 사용자만 접근 가능한 관리자 메뉴 목록 조회
+    @GetMapping("/admin/menus")
+    public ResponseEntity<List<String>> getAdminMenuList() {
+        List<String> adminMenus = List.of("메뉴 등록", "메뉴 수정", "메뉴 삭제");
+        return ResponseEntity.ok(adminMenus);
+    }
+}
+```
+
+| 경로 | 누가 들어가나 |
+|---|---|
+| `GET /api/menus` | 로그인해서 유효한 토큰을 받은 사용자라면 역할과 상관없이 누구나 |
+| `GET /api/admin/menus` | 관리자(ADMIN) 토큰만. USER 토큰으로 접근하면 권한 부족으로 차단 |
+
+> **추가 설명 — 원문 코드의 쓰지 않는 import**: 원문은 `org.springframework.security.access.prepost.PreAuthorize`를 import했지만 코드에서 쓰지 않는다. `@PreAuthorize("hasRole('ADMIN')")`처럼 **메서드에 직접 권한을 거는** 방법도 있는데, 그러려면 설정 클래스에 `@EnableMethodSecurity`를 붙여야 한다. 여기서는 URL 규칙(5절)으로 막으므로 import를 지운다.
+
+> **추가 설명 — 수업 중 코드와의 차이**: 수업에서는 관리자 메뉴가 아직 `return null;`이었다(200에 빈 본문). 원문은 `"메뉴 등록", "메뉴 수정", "메뉴 삭제"` 목록을 돌려주며, 아래 테스트 화면도 이 결과다.
+
+### 8. 인증과 권한 테스트
+
+설정이 잘 적용되었는지 Postman으로 두 가지 시나리오를 확인한다.
+
+먼저 백엔드를 실행한다. VS Code 터미널에서 아래 명령을 입력하거나, VS Code 확장인 **Spring Boot Dashboard**의 `Apps` 목록에서 `backend` 옆의 **Run(▷)** 버튼을 누른다.
+
+```bash
+./gradlew bootRun
+```
+
+다음으로 **로컬 앱(설치형)으로** Postman을 실행하고 로그인한다. 왼쪽 메인 메뉴에서 **Workspaces**로 가서, 기존 수업에서 쓰던 워크스페이스(예: `new-cafe api`)가 있으면 그것을 고른다. 없으면 다음 순서로 진행한다.
+
+1. **워크스페이스 이동**: 상단 메뉴의 Workspaces를 눌러 사용할 워크스페이스(예: My Workspace)를 고른다.
+2. **새 요청 탭 생성**: 가운데 작업 영역 위의 `+` 버튼(New Tab)으로 새 요청 탭을 연다.
+3. **요청 정보 입력**: HTTP 메서드(GET, POST 등)를 고르고 옆의 URL 칸에 테스트할 주소를 입력한다.
+4. **요청 헤더 설정**: 아래의 Headers 탭에서 Key에 `Authorization`, Value에 `Bearer <JWT_토큰>`을 넣는다.
+5. **전송과 확인**: 오른쪽 Send 버튼을 누르고 아래 응답 창에서 상태 코드와 결과를 본다.
+
+> **추가 설명 — 왜 로컬 앱인가**: 웹 브라우저용 Postman은 클라우드에서 요청을 보내므로 내 PC의 `localhost:8080`에 닿지 못한다. 설치형 앱을 쓰거나, 웹 버전이라면 Postman Desktop Agent를 함께 실행해야 한다.
+
+**1) 토큰 없이 보호된 API 호출 테스트**
+
+인증이 필요한 `GET /api/admin/menus`로 요청을 보낸다.
+
+- Headers: `Authorization` 헤더 **없이** 전송
+- 결과: `401 Unauthorized` 또는 `403 Forbidden`으로 거부된다. 인증되지 않은 요청이 정상적으로 차단된 것이다.
+
+```
+GET http://localhost:8080/api/admin/menus      (Authorization 헤더 없음)
+──────────────────────────────────────────────
+403 Forbidden
+```
+
+> **추가 설명 — 지금 설정에서는 403이 나온다**: `AuthenticationEntryPoint`를 따로 정하지 않았으므로 로그인 안 한 요청도 401이 아니라 **403**을 받는다(3부 5절 추가 설명). 또 이 경로를 막은 것은 `anyRequest().authenticated()`가 아니라 5절에서 추가한 `hasRole("ADMIN")` 규칙이다. 원문 테스트 화면의 주소는 `/admin/menus`로 `/api`가 빠져 있었는데, 그 주소도 `anyRequest().authenticated()`에 걸려 같은 403이 나므로 결과만 보고는 구분되지 않는다. 주소를 `/api/admin/menus`로 정확히 쓴다.
+
+**2) 유효한 JWT 토큰을 포함하여 요청 테스트**
+
+먼저 `POST /api/auth/login`으로 로그인해 Access Token을 발급받는다.
+
+1. **로그인 요청 설정**: 메서드를 POST로 바꾸고 URL에 `http://localhost:8080/api/auth/login`을 입력한다.
+2. **요청 본문(Body) 작성**: Body 탭에서 `raw`를 고르고, 오른쪽 드롭다운에서 `JSON`을 고른다.
+3. **로그인 정보 입력**: JSON 형식으로 아이디와 비밀번호를 쓴다.
+
+```json
+{
+    "username": "admin",
+    "password": "123"
+}
+```
+
+4. **토큰 발급 확인**: Send를 누르고 아래 응답 본문에서 `accessToken` 문자열을 복사한다.
+
+```
+POST http://localhost:8080/api/auth/login
+──────────────────────────────────────────────
+200 OK   86 ms   530 B
+{
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzkzMTAyOTEwLCJleHAiOjE3OTMxMDQ3MTB9.dc5cpozDOFy-Q-REiM60d3CP1UQSJnmfK0XEC0G93E8",
+    "tokenType": "Bearer"
+}
+```
+
+> **추가 설명 — 토큰 안을 들여다보면**: 가운데 페이로드 부분을 Base64로 풀면 `{"sub":"admin","role":"ROLE_ADMIN","iat":...,"exp":...}`이다. `admin`이 `USER`, `ADMIN` 두 역할을 가졌지만 `findFirst()`로 이름순 첫 번째인 `ROLE_ADMIN`만 들어간 것을 확인할 수 있다. `exp - iat`는 1800초(30분)로, 1부의 `access-token-expiration` 설정과 같다.
+
+토큰을 받았으면 보호된 API를 호출한다.
+
+1. **테스트할 API 요청 설정**: 메서드를 GET으로 바꾸고 URL에 `http://localhost:8080/api/admin/menus`를 입력한다.
+2. **요청 헤더 설정**: URL 칸 아래의 Headers 탭을 누른다.
+3. **인증 토큰 입력**: Key는 `Authorization`, Value는 `Bearer <발급받은_JWT_토큰>`이다. `Bearer` 뒤에 **한 칸 띄우고** 토큰을 붙여 넣는다.
+4. **전송과 확인**: Send를 누른다.
+
+- 결과: `200 OK`와 함께 데이터가 반환된다. `JwtAuthenticationFilter`가 헤더에서 토큰을 꺼내 검증하고 `SecurityContext`에 인증 객체를 등록했기 때문에 접근이 허용된 것이다.
+
+```
+GET http://localhost:8080/api/admin/menus
+Authorization 탭: Bearer Token = <admin 토큰>
+──────────────────────────────────────────────
+200 OK   10 ms   383 B
+[
+    "메뉴 등록",
+    "메뉴 수정",
+    "메뉴 삭제"
+]
+```
+
+> **추가 설명 — Headers 탭 대신 Authorization 탭**: 헤더를 직접 쓰는 대신, 테스트 화면처럼 **Authorization 탭**에서 Auth type을 `Bearer Token`으로 고르고 Token 칸에 토큰만 붙여 넣어도 된다. Postman이 `Authorization: Bearer <토큰>` 헤더를 자동으로 만들어 준다. `Bearer ` 띄어쓰기 실수가 없어서 더 편하다.
+
+> **추가 설명 — 한 번에 확인할 표**: 
+>
+> | 요청 | 토큰 | 기대 결과 |
+> |---|---|---|
+> | `GET /api/menus` | 없음 | 403 |
+> | `GET /api/menus` | jykim (ROLE_USER) | 200, 커피 메뉴 3개 |
+> | `GET /api/admin/menus` | jykim (ROLE_USER) | 403 (권한 부족) |
+> | `GET /api/admin/menus` | admin (ROLE_ADMIN) | 200, 관리 메뉴 3개 |
+> | `POST /api/auth/login` | 없음, 비밀번호 틀림 | 거절 (아래 9절) |
+> | 30분이 지난 토큰으로 호출 | 만료 토큰 | 403 (필터가 홀더를 비워 둔 채 통과) |
+
+### 9. 주의할 사항과 오류 처리
+
+**1) 잘못된 로그인 정보에 대한 예외 처리**
+
+아이디가 없거나 비밀번호가 틀리면 `authenticationManager.authenticate()`가 `BadCredentialsException`을 던진다. 예외 처리를 따로 하지 않으면 사용자에게 서버 내부 오류(500 Internal Server Error)가 전달된다. 전역 예외 처리기(`@RestControllerAdvice`)를 만들어 `401 Unauthorized`나 "아이디 또는 비밀번호가 올바르지 않습니다" 메시지를 주도록 구성하는 것이 바람직하다.
+
+> 원문 바로잡기 — 지금 설정에서는 500이 아니라 보통 **403**이 나온다. `BadCredentialsException`은 스프링 시큐리티의 인증 예외(`AuthenticationException`)라서, 컨트롤러 밖으로 빠져나가면 시큐리티의 예외 처리 필터(`ExceptionTranslationFilter`)가 받아 "인증 필요" 응답으로 바꾼다. 엔트리 포인트를 정하지 않았으므로 그 응답이 403이다. 어느 쪽이든 "아이디/비밀번호 틀림"을 프론트가 알아보기 어려우므로, 원문 권고대로 직접 처리한다.
+>
+> ```java
+> @RestControllerAdvice
+> public class GlobalExceptionHandler {
+>
+>     @ExceptionHandler(AuthenticationException.class)   // BadCredentialsException의 상위 타입
+>     public ResponseEntity<Map<String, String>> handleAuth(AuthenticationException e) {
+>         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+>                 .body(Map.of("message", "아이디 또는 비밀번호가 올바르지 않습니다"));
+>     }
+> }
+> ```
+>
+> "아이디가 없음"과 "비밀번호 틀림"을 **같은 메시지**로 주는 것이 좋다. 따로 알려 주면 공격자가 존재하는 아이디를 알아낼 수 있기 때문이다. 스프링 시큐리티도 기본적으로 아이디가 없을 때 `UsernameNotFoundException`을 `BadCredentialsException`으로 감춰서 던진다.
+
+**2) 비밀번호 평문 저장 금지**
+
+`AuthenticationManager`가 비밀번호를 제대로 비교하려면 DB에 저장된 비밀번호가 반드시 `PasswordEncoder`(예: `BCryptPasswordEncoder`)로 암호화되어 있어야 한다. 회원가입 로직을 만들 때 비밀번호를 **반드시 암호화해서 저장**해야 로그인이 정상 동작한다.
+
+> **추가 설명 — 평문으로 저장하면 생기는 일**: DB에 `123`을 그대로 넣어 두면, `BCryptPasswordEncoder.matches()`가 저장값을 BCrypt 형식(`$2a$10$...`)으로 읽지 못해 콘솔에 `Encoded password does not look like BCrypt` 경고가 찍히고 로그인이 항상 실패한다. 회원가입 서비스에서는 `passwordEncoder.encode(rawPassword)`로 바꾼 값을 저장한다.
+
+**3) 공개 경로 설정 확인**
+
+`SecurityConfig`에 `.requestMatchers("/api/auth/**").permitAll()`이 잘 들어가 있는지 다시 확인한다. 빠지면 로그인 요청조차 "토큰이 없다"는 이유로 `403 Forbidden`을 받아 로그인 창구에 접근할 수 없다.
+
+---
+
+## 마무리
+
+이것으로 스프링 부트, 스프링 시큐리티, JWT를 활용한 백엔드 인증과 권한 관리의 모든 과정을 마쳤다. 필터 설정부터 로그인 API 구현, `AuthenticationManager`를 통한 신원 검증, Postman을 활용한 권한별 접근 테스트까지 이어졌다.
+
+```
+[로그인]   POST /api/auth/login → AuthController → AuthService
+           → AuthenticationManager가 아이디/비밀번호 검증 (UserDetailsService + PasswordEncoder)
+           → JwtProvider.createAccessToken() → { accessToken, tokenType: "Bearer" } 응답
+
+[API 호출] 요청 헤더 Authorization: Bearer <토큰>
+           → JwtAuthenticationFilter가 토큰 검증 → SecurityContext에 사용자 등록
+           → SecurityConfig의 경로 규칙 검사 → 컨트롤러
+```
+
+| 경로 | 접근 조건 |
+|---|---|
+| `/api/auth/**`, `/error` | 누구나 |
+| `/api/admin/**` | ADMIN 역할 |
+| 그 외 | 로그인(유효한 토큰) 필요 |
+
+이번 과정으로 JWT를 활용한 백엔드 기초 보안 체계의 틀을 완성했다. 한 걸음 더 나아가려면 다음 주제를 추천한다.
+
+| 심화 주제 | 내용 |
+|---|---|
+| 프론트엔드 서버 연동 시 토큰 관리 | Next.js 같은 SSR 프론트엔드에서 발급받은 JWT를 안전하게 보관하고 전달하는 방법. Local Storage(XSS에 취약)와 `HttpOnly`/`Secure` 쿠키(CSRF, CORS 대응 필요)의 장단점을 비교하고, Server Actions 환경에 맞는 토큰 운영 전략을 익힌다 |
+| 동적 권한 관리 (Dynamic Security) | 코드에 고정한 권한 규칙을 넘어, DB와 연동해 사용자 역할이나 자원별 접근 권한을 실시간으로 제어하고 관리한다 |
+
+> **추가 설명 — 아직 남아 있는 일**: 4부 마무리에서 꼽았던 것 중 **Refresh Token 재발급**(지금은 Access Token만 발급한다), 로그아웃과 토큰 무효화, `AuthenticationEntryPoint`·`AccessDeniedHandler`로 401/403 JSON 응답을 통일하는 일, 그리고 메모리 사용자를 **DB 기반 `UserDetailsService`** 로 바꾸는 일이 남아 있다.
