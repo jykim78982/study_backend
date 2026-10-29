@@ -4,7 +4,7 @@ tags: [스프링시큐리티, JWT, 로그인, AuthenticationManager, UserDetails
 
 > 🔗 관련 노트: [[050_스프링 부트 JWT 인증 구현 — JJWT 설정, JwtProvider, JwtAuthenticationFilter, SecurityConfig, 로그인 API]] · [[099_인증 방식의 변화와 JWT — 세션에서 토큰으로, SAML·OAuth 2.0·BFF]] · [[093_서블릿 필터와 스프링 시큐리티 입문 — 필터 체인, @Bean, UserDetailsService]]
 
-# JWT 로그인 API 구현 — AuthController, AuthService, AuthenticationManager와 토큰을 받는 쪽
+# JWT 로그인 API — AuthController, AuthService, AuthenticationManager와 토큰을 받는 쪽
 
 지난 시간까지 `JwtProperties`, `JwtProvider`, `JwtAuthenticationFilter`를 만들고 `SecurityConfig`에 필터를 등록했다. 토큰을 **검사하는** 입구는 생겼지만, 토큰을 **발급하는** 곳이 아직 없다. 이번에는 로그인 요청을 받는 컨트롤러와 서비스를 만들어, 아이디/비밀번호를 확인하고 JWT를 돌려주는 API를 완성한다.
 
