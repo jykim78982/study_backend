@@ -1,3 +1,9 @@
+---
+tags: [스프링시큐리티, JWT, 인증, 필터, 오답노트]
+---
+
+> 🔗 관련 노트: [[050_스프링 부트 JWT 인증 구현 — JJWT 설정, JwtProvider, JwtAuthenticationFilter, SecurityConfig, 로그인 API]] · [[099_인증 방식의 변화와 JWT — 세션에서 토큰으로, SAML·OAuth 2.0·BFF]] · [[100_JWT 로그인 API — AuthController, AuthService, AuthenticationManager와 토큰을 받는 쪽]] · [[033_서블릿 필터와 스프링 보안 필터 체인의 이해 참고자료]]
+
 # JWT 인증 필터 오답노트
 
 ### 1. JWT 인증 필터가 하는 일과 하지 않는 일

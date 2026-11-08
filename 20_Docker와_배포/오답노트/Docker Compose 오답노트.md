@@ -1,3 +1,9 @@
+---
+tags: [Docker, DockerCompose, 배포, 오답노트]
+---
+
+> 🔗 관련 노트: [[097_Docker Compose — 여러 컨테이너를 하나의 네트워크로 묶어 실행하기]] · [[049_멀티 컨테이너 풀스택 환경 구축과 운영 — Docker Compose 완성하기]] · [[038_도커 컴포즈로 스프링 부트와 PostgreSQL 한 번에 구동하기 참고자료]] · [[Dockerfile 멀티 스테이지 빌드 오답노트]]
+
 # Docker Compose 오답노트
 
 ### 1. depends_on으로 보장되는 것

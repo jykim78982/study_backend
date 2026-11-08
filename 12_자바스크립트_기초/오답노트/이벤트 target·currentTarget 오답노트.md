@@ -1,3 +1,7 @@
+---
+tags: [자바스크립트, DOM, 이벤트, target, currentTarget, 오답노트]
+---
+
 # 이벤트 target·currentTarget 오답노트
 
 ### 1. 이벤트 객체의 `target` 속성은 무엇을 가리키는가?

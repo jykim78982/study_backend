@@ -1,3 +1,7 @@
+---
+tags: [JPA, SpringDataJPA, JpaRepository, 리포지토리, 오답노트]
+---
+
 # JPA 리포지토리와 조회 도구 오답노트
 
 ### 1. JpaRepository 기본 메서드 설명

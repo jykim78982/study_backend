@@ -1,3 +1,7 @@
+---
+tags: [스프링부트, Controller, RestController, 오답노트]
+---
+
 # Controller와 RestController 오답노트
 
 ### 1. @Controller와 @RestController의 차이에 관한 설명으로 옳은 것은?

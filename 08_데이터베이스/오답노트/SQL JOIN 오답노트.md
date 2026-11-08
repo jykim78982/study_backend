@@ -1,3 +1,7 @@
+---
+tags: [데이터베이스, SQL, JOIN, 오답노트]
+---
+
 # SQL JOIN 오답노트
 
 ### 1. LEFT JOIN 시 반환되는 총 레코드 수

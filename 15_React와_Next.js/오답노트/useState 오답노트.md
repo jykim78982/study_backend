@@ -1,3 +1,7 @@
+---
+tags: [React, useState, 상태, Hook, 오답노트]
+---
+
 # useState 오답노트
 
 ### 1. `useState`로 얻는 반환값의 구조와 그 사용법으로 옳은 설명은?
