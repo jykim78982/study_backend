@@ -91,4 +91,4 @@ volumes:
 
 - 실습: WSL Ubuntu에 도커 설치, 컨테이너 라이프사이클과 내부 구조, 팀 공용 PostgreSQL 개발 DB, 멀티 컨테이너 풀스택 환경(Docker Compose 완성)
 - 오답노트: Docker Compose, Dockerfile 멀티 스테이지 빌드
-- 참고자료: 배포를 위한 경량 가상화, 유니온 파일 시스템(OverlayFS), Java 21 스프링 부트 앱의 도커 이미지 배포, 도커 컴포즈로 스프링 부트와 PostgreSQL 구동, Nginx·Next.js·Spring Boot·PostgreSQL 컴포즈 구축기
+- 참고자료: 배포를 위한 경량 가상화, 유니온 파일 시스템(OverlayFS), Java 21 스프링 부트 앱의 도커 이미지 배포, 도커 컴포즈로 스프링 부트와 PostgreSQL 구동, Nginx·Next.js·Spring Boot·PostgreSQL 컴포즈 구축기, CI/CD와 테스트 서버 배포
